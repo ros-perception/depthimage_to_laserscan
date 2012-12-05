@@ -1,59 +1,55 @@
-cmake_minimum_required(VERSION 2.4.6)
-include($ENV{ROS_ROOT}/core/rosbuild/rosbuild.cmake)
+# http://ros.org/doc/groovy/api/catkin/html/user_guide/supposed.html
+cmake_minimum_required(VERSION 2.8)
+project(depthimage_to_laserscan)
 
-# Set the build type.  Options are:
-#  Coverage       : w/ debug symbols, w/o optimization, w/ code-coverage
-#  Debug          : w/ debug symbols, w/o optimization
-#  Release        : w/o debug symbols, w/ optimization
-#  RelWithDebInfo : w/ debug symbols, w/ optimization
-#  MinSizeRel     : w/o debug symbols, w/ optimization, stripped binaries
-#set(ROS_BUILD_TYPE RelWithDebInfo)
+find_package(catkin REQUIRED)
 
-rosbuild_init()
+# Load catkin and all dependencies required for this package
+find_package(catkin REQUIRED roscpp dynamic_reconfigure image_geometry image_transport nodelet roscpp sensor_msgs)
+#find_package(OpenCV REQUIRED)
 
-#set the default path for built executables to the "bin" directory
-set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
-#set the default path for built libraries to the "lib" directory
-set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
+catkin_package(DEPENDS roscpp sensor_msgs nodelet image_transport image_geometry dynamic_reconfigure
+               INCLUDE_DIRS include
+               LIBRARIES ${PROJECT_NAME}
+)
 
-#uncomment if you have defined messages
-#rosbuild_genmsg()
-#uncomment if you have defined services
-#rosbuild_gensrv()
+include_directories(SYSTEM ${catkin_INCLUDE_DIRS})
+include_directories(include)
 
-#add dynamic reconfigure api
-rosbuild_find_ros_package(dynamic_reconfigure)
-include(${dynamic_reconfigure_PACKAGE_PATH}/cmake/cfgbuild.cmake)
-gencfg()
+# Dynamic reconfigure support
+generate_dynamic_reconfigure_options(cfg/Depth.cfg)
 
-rosbuild_add_library(DepthImageToLaserScan src/DepthImageToLaserScan.cpp)
+add_library(DepthImageToLaserScan src/DepthImageToLaserScan.cpp)
 
-rosbuild_add_library(DepthImageToLaserScanROS src/DepthImageToLaserScanROS.cpp)
-target_link_libraries(DepthImageToLaserScanROS DepthImageToLaserScan)
+add_library(DepthImageToLaserScanROS src/DepthImageToLaserScanROS.cpp)
+target_link_libraries(DepthImageToLaserScanROS DepthImageToLaserScan ${catkin_LIBRARIES})
 
-rosbuild_add_library(DepthImageToLaserScanNodelet src/DepthImageToLaserScanNodelet.cpp)
-target_link_libraries(DepthImageToLaserScanNodelet DepthImageToLaserScanROS)
+add_library(DepthImageToLaserScanNodelet src/DepthImageToLaserScanNodelet.cpp)
+add_dependencies(DepthImageToLaserScanNodelet ${PROJECT_NAME}_gencfg)
+target_link_libraries(DepthImageToLaserScanNodelet DepthImageToLaserScanROS ${catkin_LIBRARIES})
 
-rosbuild_add_executable(depthimage_to_laserscan src/depthimage_to_laserscan.cpp)
-target_link_libraries(depthimage_to_laserscan DepthImageToLaserScanROS)
+add_executable(depthimage_to_laserscan src/depthimage_to_laserscan.cpp)
+add_dependencies(depthimage_to_laserscan ${PROJECT_NAME}_gencfg)
+target_link_libraries(depthimage_to_laserscan DepthImageToLaserScanROS ${catkin_LIBRARIES})
 
 # Test the library
-rosbuild_add_gtest(libtest test/DepthImageToLaserScanTest.cpp)
-target_link_libraries(libtest DepthImageToLaserScan)
+catkin_add_gtest(libtest test/DepthImageToLaserScanTest.cpp)
+target_link_libraries(libtest DepthImageToLaserScan ${catkin_LIBRARIES})
 
 # add the test executable, keep it from being built by "make all"
-rosbuild_add_executable(test_dtl EXCLUDE_FROM_ALL test/depthimage_to_laserscan_rostest.cpp)
+add_executable(test_dtl EXCLUDE_FROM_ALL test/depthimage_to_laserscan_rostest.cpp)
 
-# Link test against gtest and add a dependency to the "test" target
-rosbuild_add_gtest_build_flags(test_dtl)
+# Install targets
+install(TARGETS DepthImageToLaserScan DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION})
+install(TARGETS DepthImageToLaserScanROS DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION})
+install(TARGETS DepthImageToLaserScanNodelet DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION})
 
-# Make sure rostest launches during "make test"
-rosbuild_add_rostest(test/rostest/depthimage_to_laserscan.test)
-
-#common commands for building c++ executables and libraries
-#rosbuild_add_library(${PROJECT_NAME} src/example.cpp)
-#target_link_libraries(${PROJECT_NAME} another_library)
-#rosbuild_add_boost_directories()
-#rosbuild_link_boost(${PROJECT_NAME} thread)
-#rosbuild_add_executable(example examples/example.cpp)
-#target_link_libraries(example ${PROJECT_NAME})
+install(DIRECTORY include/${PROJECT_NAME}/
+        DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+)
+install(FILES nodelets.xml
+        DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+)
+install(TARGETS depthimage_to_laserscan
+        DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)

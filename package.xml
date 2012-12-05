@@ -1,0 +1,37 @@
+<package>
+  <name>depthimage_to_laserscan</name>
+  <version>1.0.0</version>
+  <description>depthimage_to_laserscan</description>
+  <maintainer email="chadrockey@willowgarage.com">Chad Rockey</maintainer>
+
+  <license>BSD</license>
+
+  <url type="website">http://ros.org/wiki/depthimage_to_laserscan</url>
+  <url type="bugtracker">https://github.com/ros-perception/depthimage_to_laserscan/issues</url>
+  <url type="repository">https://github.com/ros-perception/depthimage_to_laserscan</url>
+
+  <author>Chad Rockey</author>
+
+  <build_depend>roscpp</build_depend>
+  <build_depend>gtest</build_depend>
+  <build_depend>sensor_msgs</build_depend>
+  <build_depend>nodelet</build_depend>
+  <build_depend>image_transport</build_depend>
+  <build_depend>image_geometry</build_depend>
+  <build_depend>dynamic_reconfigure</build_depend>
+  <run_depend>roscpp</run_depend>
+  <run_depend>sensor_msgs</run_depend>
+  <run_depend>nodelet</run_depend>
+  <run_depend>image_transport</run_depend>
+  <run_depend>image_geometry</run_depend>
+  <run_depend>dynamic_reconfigure</run_depend>
+  <test_depend>sensor_msgs</test_depend>
+  <test_depend>nodelet</test_depend>
+  <test_depend>image_transport</test_depend>
+  <test_depend>image_geometry</test_depend>
+  <test_depend>dynamic_reconfigure</test_depend>
+
+  <export>
+    <nodelet plugin="${prefix}/nodelets.xml"/>
+  </export>
+</package>
