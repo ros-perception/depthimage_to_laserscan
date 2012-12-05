@@ -1,0 +1,24 @@
+<package>
+  <description brief="depthimage_to_laserscan">
+
+     depthimage_to_laserscan
+
+  </description>
+  <author>Chad Rockey</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes="" />
+  <url>http://ros.org/wiki/depthimage_to_laserscan</url>
+  <depend package="sensor_msgs" />
+  <depend package="nodelet" />
+  <depend package="image_transport" />
+  <depend package="image_geometry" />
+  <depend package="dynamic_reconfigure" />
+  <depend package="driver_base" />
+  
+  <export>
+    <nodelet plugin="${prefix}/nodelets.xml" />
+  </export>
+
+</package>
+
+
