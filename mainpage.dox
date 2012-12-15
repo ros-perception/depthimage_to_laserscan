@@ -2,13 +2,7 @@
 \mainpage
 \htmlinclude manifest.html
 
-\b depthimage_to_laserscan
-
-<!-- 
-Provide an overview of your package.
--->
-
--->
+\b depthimage_to_laserscan provides an efficient method to project laserscans directly from depth images.  These messages are used to run laserscan based software such as gmapping, amcl, or the navigation stack from robots with only depth cameras such as the Mircosoft Kinect or ASUS Xtion.
 
 
 */
