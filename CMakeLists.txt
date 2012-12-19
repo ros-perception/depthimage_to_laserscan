@@ -6,15 +6,15 @@ project(depthimage_to_laserscan)
 find_package(catkin REQUIRED dynamic_reconfigure image_geometry image_transport nodelet roscpp sensor_msgs)
 #find_package(OpenCV REQUIRED)
 
+# Dynamic reconfigure support
+generate_dynamic_reconfigure_options(cfg/Depth.cfg)
+
 catkin_package(DEPENDS sensor_msgs roscpp nodelet image_transport image_geometry dynamic_reconfigure
                INCLUDE_DIRS include
                LIBRARIES ${PROJECT_NAME}
 )
 
 include_directories(include ${catkin_INCLUDE_DIRS})
-
-# Dynamic reconfigure support
-generate_dynamic_reconfigure_options(cfg/Depth.cfg)
 
 add_library(DepthImageToLaserScan src/DepthImageToLaserScan.cpp)
 target_link_libraries(DepthImageToLaserScan ${catkin_LIBRARIES})
