@@ -1,6 +1,6 @@
 <package>
   <name>depthimage_to_laserscan</name>
-  <version>1.0.1</version>
+  <version>1.0.2</version>
   <description>depthimage_to_laserscan</description>
   <maintainer email="chadrockey@willowgarage.com">Chad Rockey</maintainer>
 
