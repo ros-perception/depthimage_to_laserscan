@@ -27,11 +27,6 @@
   <run_depend>image_transport</run_depend>
   <run_depend>image_geometry</run_depend>
   <run_depend>dynamic_reconfigure</run_depend>
-  <test_depend>sensor_msgs</test_depend>
-  <test_depend>nodelet</test_depend>
-  <test_depend>image_transport</test_depend>
-  <test_depend>image_geometry</test_depend>
-  <test_depend>dynamic_reconfigure</test_depend>
 
   <export>
     <nodelet plugin="${prefix}/nodelets.xml"/>
