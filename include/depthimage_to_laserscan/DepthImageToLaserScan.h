@@ -185,23 +185,22 @@ namespace depthimage_to_laserscan
       depth_row += offset*row_step; // Offset to center of image
 
       for(int v = offset; v < offset+scan_height_; v++, depth_row += row_step){
-	for (int u = 0; u < (int)depth_msg->width; u++) // Loop over each pixel in row
-	{	
-	  T depth = depth_row[u];
-	  
-	  double r = depth; // Assign to pass through NaNs and Infs
-	  double th = -atan2((double)(u - center_x) * constant_x, unit_scaling); // Atan2(x, z), but depth divides out
-	  int index = (th - scan_msg->angle_min) / scan_msg->angle_increment;
-	  
-	  if (depthimage_to_laserscan::DepthTraits<T>::valid(depth)){ // Not NaN or Inf
-	    // Calculate in XYZ
-	    double x = (u - center_x) * depth * constant_x;
-	    double y = (v - center_y) * depth * constant_y;
-	    double z = depthimage_to_laserscan::DepthTraits<T>::toMeters(depth);
-	    
-	    // Calculate actual distance
-	    r = sqrt(pow(x, 2.0) + pow(y, 2.0) + pow(z, 2.0));
-	  }
+		for (int u = 0; u < (int)depth_msg->width; u++) // Loop over each pixel in row
+		{	
+		  T depth = depth_row[u];
+		  
+		  double r = depth; // Assign to pass through NaNs and Infs
+		  double th = -atan2((double)(u - center_x) * constant_x, unit_scaling); // Atan2(x, z), but depth divides out
+		  int index = (th - scan_msg->angle_min) / scan_msg->angle_increment;
+		  
+		  if (depthimage_to_laserscan::DepthTraits<T>::valid(depth)){ // Not NaN or Inf
+		    // Calculate in XYZ
+		    double x = (u - center_x) * depth * constant_x;
+		    double z = depthimage_to_laserscan::DepthTraits<T>::toMeters(depth);
+		    
+		    // Calculate actual distance
+		    r = sqrt(pow(x, 2.0) + pow(z, 2.0));
+		  }
 	  
 	  // Determine if this point should be used.
 	  if(use_point(r, scan_msg->ranges[index], scan_msg->range_min, scan_msg->range_max)){
