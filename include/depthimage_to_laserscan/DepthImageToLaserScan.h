@@ -113,6 +113,18 @@ namespace depthimage_to_laserscan
      */
     void set_output_frame(const std::string output_frame_id);
 
+    /**
+     * Sets the option to apply range_max heuristics to the output LaserScan.
+     *
+     * This is useful when using a kinect as normally the output is NaN for both too close and too far readings.
+     * A number of heuristics are applied in an attempt to convert NaN readings that are likely due to far range
+     * to range_max.  The heuristics were developed for the MS Kinect and motivated by the desire to mark large
+     * sections of hallway as empty when the robot cannot see the end during SLAM.
+     *
+     * @param kinect_heuristics Set to true to enable range_max heuristics
+     */
+    void set_kinect_heuristics(const bool kinect_heuristics);
+
   private:
     /**
      * Computes euclidean length of a cv::Point3d (as a ray from origin)
@@ -152,6 +164,99 @@ namespace depthimage_to_laserscan
      * 
      */
     bool use_point(const float new_value, const float old_value, const float range_min, const float range_max) const;
+
+    /**
+     * Replaces -Inf values in the scan msg with range_max if it is likely due to out of range readings from the kinect, 
+     * determined by a set of heuristics.  This is useful in certain situations such as SLAM where we want the knowledge
+     * that there is nothing within sensor range to be used to update the map with open areas (especially useful in
+     * long hallways)
+     *
+     * The heuristics used are:
+     *  1.  A candidate section must have at least 4 -Inf's with no good readings in between (NaN ok)
+     *  2.  A candidate section must be smaller than size / 2 (this prevents many "too close to a wall" false positives,
+     *        but not all)
+     *  3.  A candidate section must be surrounded by large distance readings on both sides, or by the edge of the scan
+     *  4.  Since the first 6 values in scan_msg are always NaN, ignore them
+     *
+     * @param scan_msg The processed laser scan msg with -Inf points denoting kinect readings to examine
+     * @param size The width of the laser scan
+     *
+     */
+    inline void kinect_error_to_max_range( const sensor_msgs::LaserScanPtr& scan_msg, int size) const {
+
+	int start = 0;
+	int end = 5;
+
+	while (start < size) {
+
+		// find a -inf
+
+		start = end + 1;
+		end = -1;
+
+		while (start < size && (isnan(scan_msg->ranges[start]) || std::isfinite(scan_msg->ranges[start])))
+			start ++;
+
+		end = start;
+
+		while (end < size && !std::isfinite(scan_msg->ranges[end]))
+			end ++;
+
+		if (end - start >= 4) {
+
+			// verify that there are at least 4 -inf's in the range
+			int count = 0;
+			for (int i = start; i <= end; i++) {
+				if (! isnan(scan_msg->ranges[i]))
+					count++;
+			}
+			if (count < 4 || count > (size / 2))
+				continue;
+
+
+			float startDepth = -1;
+			float endDepth = -1;
+
+			// find the start depth
+
+			for (int i = start - 1; i > 5; i --) {
+				if (std::isfinite(scan_msg->ranges[i])) {
+					startDepth = scan_msg->ranges[i];
+					break;
+				}
+
+			} 
+
+
+			// find the end depth
+
+			for (int i = end + 1; i < size; i ++) {
+				if (std::isfinite(scan_msg->ranges[i])) {
+					endDepth = scan_msg->ranges[i];
+					break;
+				}
+
+			} 
+
+			//TODO: Replace with MaxURange parameter
+			if ((startDepth < 0 || startDepth > .5f * scan_msg->range_max) &&
+				(endDepth < 0 || endDepth > .5f * scan_msg->range_max)) {
+
+				// valid range found, convert all -inf's to range_max
+
+				for (int i = start; i <= end; i ++) {
+					if (!isnan(scan_msg->ranges[i]))
+						scan_msg->ranges[i] = scan_msg->range_max;
+				}
+			}
+		}
+
+	}
+
+	for (int i = 0; i < size; i ++) 
+		if (!std::isfinite(scan_msg->ranges[i]))
+			scan_msg->ranges[i] = std::numeric_limits<float>::quiet_NaN();
+    }
 
     /**
     * Converts the depth image to a laserscan using the DepthTraits to assist.
@@ -205,9 +310,14 @@ namespace depthimage_to_laserscan
 	  // Determine if this point should be used.
 	  if(use_point(r, scan_msg->ranges[index], scan_msg->range_min, scan_msg->range_max)){
 	    scan_msg->ranges[index] = r;
-	  }
+  	  } else if (! depthimage_to_laserscan::DepthTraits<T>::valid(depth) && index > 5 && use_kinect_heuristics_){
+	    scan_msg->ranges[index] = -std::numeric_limits<float>::infinity();
+  	  }
 	}
       }
+
+      if (use_kinect_heuristics_)
+      	kinect_error_to_max_range(scan_msg,(int) depth_msg->width);
     }
     
     image_geometry::PinholeCameraModel cam_model_; ///< image_geometry helper class for managing sensor_msgs/CameraInfo messages.
@@ -217,8 +327,9 @@ namespace depthimage_to_laserscan
     float range_max_; ///< Stores the current maximum range to use.
     int scan_height_; ///< Number of pixel rows to use when producing a laserscan from an area.
     std::string output_frame_id_; ///< Output frame_id for each laserscan.  This is likely NOT the camera's frame_id.
+    bool use_kinect_heuristics_; ///< Replace NaN's in output with range_max when likely due to out of range readings from the kinect
   };
-  
+
   
 }; // depthimage_to_laserscan
 
