@@ -160,3 +160,7 @@ void DepthImageToLaserScan::set_scan_height(const int scan_height){
 void DepthImageToLaserScan::set_output_frame(const std::string output_frame_id){
   output_frame_id_ = output_frame_id;
 }
+
+void DepthImageToLaserScan::set_kinect_heuristics(const bool kinect_heuristics){
+  use_kinect_heuristics_ = kinect_heuristics;
+}
