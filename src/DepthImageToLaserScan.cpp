@@ -109,7 +109,7 @@ sensor_msgs::LaserScanPtr DepthImageToLaserScan::convert_msg(const sensor_msgs::
   }
   scan_msg->angle_min = angle_min;
   scan_msg->angle_max = angle_max;
-  scan_msg->angle_increment = (scan_msg->angle_max - scan_msg->angle_min) / depth_msg->width;
+  scan_msg->angle_increment = (scan_msg->angle_max - scan_msg->angle_min) / (depth_msg->width - 1);
   scan_msg->time_increment = 0.0;
   scan_msg->scan_time = scan_time_;
   scan_msg->range_min = range_min_;
