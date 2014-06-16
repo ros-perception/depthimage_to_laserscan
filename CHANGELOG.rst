@@ -2,6 +2,19 @@
 Changelog for package depthimage_to_laserscan
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.0.7 (2014-06-16)
+------------------
+* Merge pull request `#11 <https://github.com/ros-perception/depthimage_to_laserscan/issues/11>`_ from ros-perception/hydro-devel
+  Update indigo devel with angle fix
+* Merge pull request `#8 <https://github.com/ros-perception/depthimage_to_laserscan/issues/8>`_ from vliedel/hydro-devel
+  fixed angle_increment
+* fixed angle_increment
+* Merge pull request `#7 <https://github.com/ros-perception/depthimage_to_laserscan/issues/7>`_ from bulwahn/hydro-devel
+  check for CATKIN_ENABLE_TESTING
+* check for CATKIN_ENABLE_TESTING
+* Added ARCHIVE DESTINATION
+* Contributors: Chad Rockey, Lukas Bulwahn, vliedel
+
 1.0.6 (2013-10-31)
 ------------------
 * Removed y component from projected beam radius.
