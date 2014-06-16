@@ -2,8 +2,8 @@
 Changelog for package depthimage_to_laserscan
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.7 (2014-06-16)
+------------------
 * Merge pull request `#11 <https://github.com/ros-perception/depthimage_to_laserscan/issues/11>`_ from ros-perception/hydro-devel
   Update indigo devel with angle fix
 * Merge pull request `#8 <https://github.com/ros-perception/depthimage_to_laserscan/issues/8>`_ from vliedel/hydro-devel
