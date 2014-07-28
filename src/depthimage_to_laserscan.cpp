@@ -27,7 +27,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-/* 
+/*
  * Author: Chad Rockey
  */
 
@@ -37,9 +37,9 @@ int main(int argc, char **argv){
   ros::init(argc, argv, "depthimage_to_laserscan");
   ros::NodeHandle n;
   ros::NodeHandle pnh("~");
-  
+
   depthimage_to_laserscan::DepthImageToLaserScanROS dtl(n, pnh);
-  
+
   ros::spin();
 
   return 0;
