@@ -37,6 +37,8 @@
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/LaserScan.h>
 #include <sensor_msgs/image_encodings.h>
+#include <geometry_msgs/PointStamped.h>
+#include <tf/transform_listener.h>
 #include <image_geometry/pinhole_camera_model.h>
 #include <depthimage_to_laserscan/depth_traits.h>
 #include <sstream>
@@ -113,7 +115,10 @@ namespace depthimage_to_laserscan
      */
     void set_output_frame(const std::string output_frame_id);
 
+    void set_height_limits(const float height_min, const float height_max);
+
   private:
+
     /**
      * Computes euclidean length of a cv::Point3d (as a ray from origin)
      * 
@@ -172,7 +177,7 @@ namespace depthimage_to_laserscan
       // Use correct principal point from calibration
       float center_x = cam_model.cx();
       float center_y = cam_model.cy();
-
+      
       // Combine unit conversion (if necessary) with scaling by focal length for computing (X,Y)
       double unit_scaling = depthimage_to_laserscan::DepthTraits<T>::toMeters( T(1) );
       float constant_x = unit_scaling / cam_model.fx();
@@ -195,17 +200,33 @@ namespace depthimage_to_laserscan
 	  
 	  if (depthimage_to_laserscan::DepthTraits<T>::valid(depth)){ // Not NaN or Inf
 	    // Calculate in XYZ
-
+            double x = (u - center_x) * depth * constant_x;
             double y = (v - center_y) * depth * constant_y;
+	    double z = depthimage_to_laserscan::DepthTraits<T>::toMeters(depth);
 
-            if(y <= -0.04 || y >= 3.0){
+            geometry_msgs::PointStamped cur_point;
+            geometry_msgs::PointStamped trans_point;
+            cur_point.header.frame_id = "camera_depth_optical_frame";
+            cur_point.header.stamp= ros::Time();
+            cur_point.point.x = x;
+            cur_point.point.y = y;
+            cur_point.point.z = z;
+
+            try{
+              listener_.transformPoint("/map", cur_point, trans_point);
+            } catch(tf::TransformException &ex) {
+              ROS_ERROR("%s", ex.what());
+              ros::Duration(1.0).sleep();
               continue;
             }
-       
-	    double x = (u - center_x) * depth * constant_x;
-	    double z = depthimage_to_laserscan::DepthTraits<T>::toMeters(depth);
-		    
-	    // Calculate actual distance
+
+            //ROS_ERROR("before transform: ( %f, %f, %f)", x,  y, z);
+            //ROS_ERROR("after transform: ( %f, %f, %f)", trans_point.point.x, trans_point.point.y, trans_point.point.z);   
+            if( trans_point.point.z < height_min_|| trans_point.point.z > height_max_){
+              continue;
+            }
+
+            // Calculate actual distance
 	    r = sqrt(pow(x, 2.0) + pow(z, 2.0));
 	  
 	  
@@ -225,6 +246,9 @@ namespace depthimage_to_laserscan
     float range_max_; ///< Stores the current maximum range to use.
     int scan_height_; ///< Number of pixel rows to use when producing a laserscan from an area.
     std::string output_frame_id_; ///< Output frame_id for each laserscan.  This is likely NOT the camera's frame_id.
+    tf::TransformListener listener_; ///< TF listener for retrieving transform between frames.
+    float height_min_;
+    float height_max_;
   };
   
   
