@@ -175,8 +175,8 @@ namespace depthimage_to_laserscan
     void convert(const sensor_msgs::ImageConstPtr& depth_msg, const image_geometry::PinholeCameraModel& cam_model, 
 		 const sensor_msgs::LaserScanPtr& scan_msg, const int& scan_height) const{
       // Use correct principal point from calibration
-      float center_x = cam_model.cx();
-      float center_y = cam_model.cy();
+      float center_x = depth_msg->width - cam_model.cx();
+      float center_y = depth_msg->height - cam_model.cy();
       
       // Combine unit conversion (if necessary) with scaling by focal length for computing (X,Y)
       double unit_scaling = depthimage_to_laserscan::DepthTraits<T>::toMeters( T(1) );
@@ -186,7 +186,7 @@ namespace depthimage_to_laserscan
       const T* depth_row = reinterpret_cast<const T*>(&depth_msg->data[0]);
       int row_step = depth_msg->step / sizeof(T);
 
-      int offset = (int)(cam_model.cy()-scan_height/2);
+      int offset = (int)(center_y-scan_height/2);
       depth_row += offset*row_step; // Offset to center of image
 
       // listen to transform only once to avoid overhead
@@ -210,7 +210,7 @@ namespace depthimage_to_laserscan
 	  T depth = depth_row[u];
 		  
 	  double r = depth; // Assign to pass through NaNs and Infs
-	  double th = -atan2((double)(u - center_x) * constant_x, unit_scaling); // Atan2(x, z), but depth divides out
+	  double th = -atan2((double)(center_x - u) * constant_x, unit_scaling); // Atan2(x, z), but depth divides out
 	  int index = (th - scan_msg->angle_min) / scan_msg->angle_increment;	
 	  
 	  if (depthimage_to_laserscan::DepthTraits<T>::valid(depth)){ // Not NaN or Inf
