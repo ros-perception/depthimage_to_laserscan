@@ -189,6 +189,21 @@ namespace depthimage_to_laserscan
       int offset = (int)(cam_model.cy()-scan_height/2);
       depth_row += offset*row_step; // Offset to center of image
 
+      // listen to transform only once to avoid overhead
+      tf::StampedTransform transform;
+      try{
+        listener_.lookupTransform("/map", "/camera_depth_optical_frame", ros::Time(0), transform);
+      } catch (tf::TransformException &ex){
+        ROS_ERROR("%s", ex.what());
+        return;
+      }
+
+      // store specific element we want to use
+      double tf_basis_2_0 = transform.getBasis()[2][0];
+      double tf_basis_2_1 = transform.getBasis()[2][1];
+      double tf_basis_2_2 = transform.getBasis()[2][2];
+      double tf_origin_z = transform.getOrigin().z();
+
       for(int v = offset; v < offset+scan_height_; v++, depth_row += row_step){
 	for (int u = 0; u < (int)depth_msg->width; u++) // Loop over each pixel in row
 	{	
@@ -204,6 +219,14 @@ namespace depthimage_to_laserscan
             double y = (v - center_y) * depth * constant_y;
 	    double z = depthimage_to_laserscan::DepthTraits<T>::toMeters(depth);
 
+            if(z > range_max_ || z < range_min_){
+              continue;
+            }
+
+            double rectified_height = x * tf_basis_2_0 + y * tf_basis_2_1 + z * tf_basis_2_2 + tf_origin_z;
+            //double rectify_height = transform.getBasis()[2][0] * x + transform.getBasis()[2][1] * y + transform.getBasis()[2][2] * z + transform.getOrigin().z();
+
+            /*
             geometry_msgs::PointStamped cur_point;
             geometry_msgs::PointStamped trans_point;
             cur_point.header.frame_id = "camera_depth_optical_frame";
@@ -219,10 +242,10 @@ namespace depthimage_to_laserscan
               ros::Duration(1.0).sleep();
               continue;
             }
-
-            //ROS_ERROR("before transform: ( %f, %f, %f)", x,  y, z);
-            //ROS_ERROR("after transform: ( %f, %f, %f)", trans_point.point.x, trans_point.point.y, trans_point.point.z);   
-            if( trans_point.point.z < height_min_|| trans_point.point.z > height_max_){
+            
+            ROS_DEBUG("ros transform: (%f)", trans_point.point.z);
+            ROS_DEBUG("my  transform: (%f)", rectified_height); */
+            if( rectified_height < height_min_|| rectified_height > height_max_){
               continue;
             }
 
