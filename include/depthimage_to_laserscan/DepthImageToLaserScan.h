@@ -188,7 +188,7 @@ namespace depthimage_to_laserscan
       int row_step = depth_msg->step / sizeof(T);
 
       // offset by certain amonut since the bottom 150 row are mostly floor (noisy data)
-      int offset = (int)(center_y - scan_height/2 + 75);
+      int offset = (int)(center_y - scan_height/2 + OFFSET_BOTTOM_ROW/2);
       depth_row += offset*row_step; // Offset to center of image
 
       // listen to transform only once to avoid overhead
@@ -213,7 +213,7 @@ namespace depthimage_to_laserscan
 		  
 	  double r = depth; // Assign to pass through NaNs and Infs
           // Because the camera is flipped, the theta should also be flipped
-	  double th = -atan2((double)(center_x - u) * constant_x, unit_scaling); // Atan2(x, z), but depth divides out
+	  double th = atan2((double)(u - center_x) * constant_x, unit_scaling); // Atan2(x, z), but depth divides out
 	  int index = (th - scan_msg->angle_min) / scan_msg->angle_increment;
 
 	  if (depthimage_to_laserscan::DepthTraits<T>::valid(depth)){ // Not NaN or Inf
@@ -276,6 +276,7 @@ namespace depthimage_to_laserscan
     tf::TransformListener listener_; ///< TF listener for retrieving transform between frames.
     float height_min_;
     float height_max_;
+    static const int OFFSET_BOTTOM_ROW = 150;
   };
   
   
