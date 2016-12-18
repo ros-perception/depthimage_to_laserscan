@@ -212,8 +212,7 @@ namespace depthimage_to_laserscan
 	  T depth = depth_row[u];
 		  
 	  double r = depth; // Assign to pass through NaNs and Infs
-          // Because the camera is flipped, the theta should also be flipped
-	  double th = atan2((double)(u - center_x) * constant_x, unit_scaling); // Atan2(x, z), but depth divides out
+	  double th = -atan2((double)(u - center_x) * constant_x, unit_scaling); // Atan2(x, z), but depth divides out
 	  int index = (th - scan_msg->angle_min) / scan_msg->angle_increment;
 
 	  if (depthimage_to_laserscan::DepthTraits<T>::valid(depth)){ // Not NaN or Inf
@@ -228,27 +227,7 @@ namespace depthimage_to_laserscan
             }
 
             double rectified_height = x * tf_basis_2_0 + y * tf_basis_2_1 + z * tf_basis_2_2 + tf_origin_z;
-            //double rectify_height = transform.getBasis()[2][0] * x + transform.getBasis()[2][1] * y + transform.getBasis()[2][2] * z + transform.getOrigin().z();
 
-            /*
-            geometry_msgs::PointStamped cur_point;
-            geometry_msgs::PointStamped trans_point;
-            cur_point.header.frame_id = "camera_depth_optical_frame";
-            cur_point.header.stamp= ros::Time();
-            cur_point.point.x = x;
-            cur_point.point.y = y;
-            cur_point.point.z = z;
-
-            try{
-              listener_.transformPoint("/map", cur_point, trans_point);
-            } catch(tf::TransformException &ex) {
-              ROS_ERROR("%s", ex.what());
-              ros::Duration(1.0).sleep();
-              continue;
-            }
-            
-            ROS_DEBUG("ros transform: (%f)", trans_point.point.z);
-            ROS_DEBUG("my  transform: (%f)", rectified_height); */
             if( rectified_height < height_min_|| rectified_height > height_max_){
               continue;
             }
