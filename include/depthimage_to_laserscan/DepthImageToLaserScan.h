@@ -37,6 +37,8 @@
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/LaserScan.h>
 #include <sensor_msgs/image_encodings.h>
+#include <geometry_msgs/PointStamped.h>
+#include <tf/transform_listener.h>
 #include <image_geometry/pinhole_camera_model.h>
 #include <depthimage_to_laserscan/depth_traits.h>
 #include <sstream>
@@ -113,7 +115,10 @@ namespace depthimage_to_laserscan
      */
     void set_output_frame(const std::string output_frame_id);
 
+    void set_height_limits(const float height_min, const float height_max);
+
   private:
+
     /**
      * Computes euclidean length of a cv::Point3d (as a ray from origin)
      * 
@@ -170,9 +175,10 @@ namespace depthimage_to_laserscan
     void convert(const sensor_msgs::ImageConstPtr& depth_msg, const image_geometry::PinholeCameraModel& cam_model, 
 		 const sensor_msgs::LaserScanPtr& scan_msg, const int& scan_height) const{
       // Use correct principal point from calibration
-      float center_x = cam_model.cx();
-      float center_y = cam_model.cy();
-
+      // Since we setup the camera upside down, the principle point shifts.
+      float center_x = depth_msg->width - cam_model.cx();
+      float center_y = depth_msg->height - cam_model.cy();
+      
       // Combine unit conversion (if necessary) with scaling by focal length for computing (X,Y)
       double unit_scaling = depthimage_to_laserscan::DepthTraits<T>::toMeters( T(1) );
       float constant_x = unit_scaling / cam_model.fx();
@@ -181,31 +187,60 @@ namespace depthimage_to_laserscan
       const T* depth_row = reinterpret_cast<const T*>(&depth_msg->data[0]);
       int row_step = depth_msg->step / sizeof(T);
 
-      int offset = (int)(cam_model.cy()-scan_height/2);
+      // offset by certain amonut since the bottom 150 row are mostly floor (noisy data)
+      int offset = (int)(center_y - scan_height/2 + OFFSET_BOTTOM_ROW/2);
       depth_row += offset*row_step; // Offset to center of image
 
+      // listen to transform only once to avoid overhead
+      tf::StampedTransform transform;
+      try{
+        listener_.lookupTransform("/map", "/camera_depth_optical_frame", ros::Time(0), transform);
+      } catch (tf::TransformException &ex){
+        ROS_ERROR("%s", ex.what());
+        return;
+      }
+
+      // store specific element we want to use
+      double tf_basis_2_0 = transform.getBasis()[2][0];
+      double tf_basis_2_1 = transform.getBasis()[2][1];
+      double tf_basis_2_2 = transform.getBasis()[2][2];
+      double tf_origin_z = transform.getOrigin().z();
+
       for(int v = offset; v < offset+scan_height_; v++, depth_row += row_step){
-		for (int u = 0; u < (int)depth_msg->width; u++) // Loop over each pixel in row
-		{	
-		  T depth = depth_row[u];
+	for (int u = 0; u < (int)depth_msg->width; u++) // Loop over each pixel in row
+	{	
+	  T depth = depth_row[u];
 		  
-		  double r = depth; // Assign to pass through NaNs and Infs
-		  double th = -atan2((double)(u - center_x) * constant_x, unit_scaling); // Atan2(x, z), but depth divides out
-		  int index = (th - scan_msg->angle_min) / scan_msg->angle_increment;
-		  
-		  if (depthimage_to_laserscan::DepthTraits<T>::valid(depth)){ // Not NaN or Inf
-		    // Calculate in XYZ
-		    double x = (u - center_x) * depth * constant_x;
-		    double z = depthimage_to_laserscan::DepthTraits<T>::toMeters(depth);
-		    
-		    // Calculate actual distance
-		    r = sqrt(pow(x, 2.0) + pow(z, 2.0));
-		  }
+	  double r = depth; // Assign to pass through NaNs and Infs
+	  double th = -atan2((double)(u - center_x) * constant_x, unit_scaling); // Atan2(x, z), but depth divides out
+	  int index = (th - scan_msg->angle_min) / scan_msg->angle_increment;
+
+	  if (depthimage_to_laserscan::DepthTraits<T>::valid(depth)){ // Not NaN or Inf
+	    // Calculate in XYZ
+            double x = (u - center_x) * depth * constant_x;
+            double y = (v - center_y) * depth * constant_y;
+	    double z = depthimage_to_laserscan::DepthTraits<T>::toMeters(depth);
+
+            // Early return while z is out of range
+            if(z > range_max_ || z < range_min_){
+              continue;
+            }
+
+            double rectified_height = x * tf_basis_2_0 + y * tf_basis_2_1 + z * tf_basis_2_2 + tf_origin_z;
+
+            if( rectified_height < height_min_|| rectified_height > height_max_){
+              continue;
+            }
+
+            // Calculate actual distance
+	    r = sqrt(pow(x, 2.0) + pow(z, 2.0));
 	  
-	  // Determine if this point should be used.
-	  if(use_point(r, scan_msg->ranges[index], scan_msg->range_min, scan_msg->range_max)){
-	    scan_msg->ranges[index] = r;
-	  }
+	  
+	    // Determine if this point should be used.
+	    if(use_point(r, scan_msg->ranges[index], scan_msg->range_min, scan_msg->range_max)){
+	      scan_msg->ranges[index] = r;
+	    }
+          }
 	}
       }
     }
@@ -217,6 +252,10 @@ namespace depthimage_to_laserscan
     float range_max_; ///< Stores the current maximum range to use.
     int scan_height_; ///< Number of pixel rows to use when producing a laserscan from an area.
     std::string output_frame_id_; ///< Output frame_id for each laserscan.  This is likely NOT the camera's frame_id.
+    tf::TransformListener listener_; ///< TF listener for retrieving transform between frames.
+    float height_min_;
+    float height_max_;
+    static const int OFFSET_BOTTOM_ROW = 150;
   };
   
   
