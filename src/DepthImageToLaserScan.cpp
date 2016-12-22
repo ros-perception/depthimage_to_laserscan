@@ -95,6 +95,22 @@ bool DepthImageToLaserScan::use_point(const float new_value, const float old_val
   return shorter_check;
 }
 
+sensor_msgs::LaserScanPtr DepthImageToLaserScan::convert_msg(const sensor_msgs::ImageConstPtr& depth_msg,
+							     const sensor_msgs::CameraInfoConstPtr& info_msg)
+{
+  sensor_msgs::LaserScanPtr scan_msg(new sensor_msgs::LaserScan());
+  convert_msg(depth_msg, info_msg, scan_msg);
+  return scan_msg;
+}
+
+sensor_msgs::LaserScanPtr convert_msg_f(const sensor_msgs::ImageConstPtr& depth_msg,
+					const sensor_msgs::CameraInfoConstPtr& info_msg)
+{
+  sensor_msgs::LaserScanPtr scan_msg(new sensor_msgs::LaserScan());
+  convert_msg_f(depth_msg, info_msg, scan_msg);
+  return scan_msg;
+}
+
 bool DepthImageToLaserScan::convert_msg(const sensor_msgs::ImageConstPtr& depth_msg,
 	      const sensor_msgs::CameraInfoConstPtr& info_msg, sensor_msgs::LaserScanPtr & scan_msg)
 {
@@ -118,7 +134,6 @@ bool DepthImageToLaserScan::convert_msg(const sensor_msgs::ImageConstPtr& depth_
   double angle_min = -angle_between_rays(center_ray, right_ray); // Negative because the laserscan message expects an opposite rotation of that from the depth image
   
   // Fill in laserscan message
-  //sensor_msgs::LaserScanPtr scan_msg(new sensor_msgs::LaserScan());
   scan_msg->header = depth_msg->header;
   if(output_frame_id_.length() > 0){
     scan_msg->header.frame_id = output_frame_id_;
@@ -157,7 +172,6 @@ bool DepthImageToLaserScan::convert_msg(const sensor_msgs::ImageConstPtr& depth_
     throw std::runtime_error(ss.str());
   }
   
-  //return scan_msg;
   return true;
 }
 
@@ -183,7 +197,6 @@ bool DepthImageToLaserScan::convert_msg_f(const sensor_msgs::ImageConstPtr& dept
   float angle_min = -angle_between_rays_f(center_ray, right_ray); // Negative because the laserscan message expects an opposite rotation of that from the depth image
 
   // Fill in laserscan message
-  //sensor_msgs::LaserScanPtr scan_msg(new sensor_msgs::LaserScan());
   scan_msg->header = depth_msg->header;
   if(output_frame_id_.length() > 0){
     scan_msg->header.frame_id = output_frame_id_;
@@ -223,7 +236,6 @@ bool DepthImageToLaserScan::convert_msg_f(const sensor_msgs::ImageConstPtr& dept
   }
 
   return true;
-  //return scan_msg;
 }
 
 void DepthImageToLaserScan::set_scan_time(const float scan_time){
