@@ -103,7 +103,7 @@ sensor_msgs::LaserScanPtr DepthImageToLaserScan::convert_msg(const sensor_msgs::
   return scan_msg;
 }
 
-sensor_msgs::LaserScanPtr convert_msg_f(const sensor_msgs::ImageConstPtr& depth_msg,
+sensor_msgs::LaserScanPtr DepthImageToLaserScan::convert_msg_f(const sensor_msgs::ImageConstPtr& depth_msg,
 					const sensor_msgs::CameraInfoConstPtr& info_msg)
 {
   sensor_msgs::LaserScanPtr scan_msg(new sensor_msgs::LaserScan());
