@@ -115,7 +115,15 @@ namespace depthimage_to_laserscan
      */
     void set_output_frame(const std::string output_frame_id);
 
-    void set_height_limits(const float height_min, const float height_max);
+    /**
+     * Sets the minimum, maximum height threshold and the number of rows of depth image to offset.
+     * Inside the function, we rectify depth image to 3D points in world frame. Since the points picked up from floor or high ceiling are mostly noise, we set the constraint to filter them out.
+     *
+     * @param height_min Minimum height for a rectified 3D point.
+     * @param height_max Maximum height for a rectified 3D point.
+     * @param offset_bottom_row Number of rows to offset from the bottom of image.
+     */
+    void set_height_limits(const float height_min, const float height_max, const int offset_bottom_row);
 
   private:
 
@@ -187,9 +195,18 @@ namespace depthimage_to_laserscan
       const T* depth_row = reinterpret_cast<const T*>(&depth_msg->data[0]);
       int row_step = depth_msg->step / sizeof(T);
 
-      // offset by certain amonut since the bottom 150 row are mostly floor (noisy data)
-      int offset = (int)(center_y - scan_height/2 + OFFSET_BOTTOM_ROW/2);
-      depth_row += offset*row_step; // Offset to center of image
+      // rows or depth image data between lower/upper bound are used to generated laser scan
+      // offset by certain amonut since the bottom rows are mostly floor (noisy data)
+      int lower_bound = (int)(center_y - scan_height / 2 + offset_bottom_row_ / 2);
+      if(lower_bound <= depth_msg->height / 3){
+        lower_bound = depth_msg->height / 3;
+      }
+
+      int upper_bound = lower_bound + scan_height;
+      if(upper_bound > depth_msg->height){
+        upper_bound = depth_msg->height;
+      }
+      depth_row += lower_bound * row_step; // Offset to starting pixel
 
       // listen to transform only once to avoid overhead
       tf::StampedTransform transform;
@@ -206,7 +223,7 @@ namespace depthimage_to_laserscan
       double tf_basis_2_2 = transform.getBasis()[2][2];
       double tf_origin_z = transform.getOrigin().z();
 
-      for(int v = offset; v < offset+scan_height_; v++, depth_row += row_step){
+      for(int v = lower_bound; v < upper_bound; v++, depth_row += row_step){
 	for (int u = 0; u < (int)depth_msg->width; u++) // Loop over each pixel in row
 	{	
 	  T depth = depth_row[u];
@@ -253,9 +270,9 @@ namespace depthimage_to_laserscan
     int scan_height_; ///< Number of pixel rows to use when producing a laserscan from an area.
     std::string output_frame_id_; ///< Output frame_id for each laserscan.  This is likely NOT the camera's frame_id.
     tf::TransformListener listener_; ///< TF listener for retrieving transform between frames.
-    float height_min_;
+    float height_min_; ///< height threshold for rectified laser point
     float height_max_;
-    static const int OFFSET_BOTTOM_ROW = 150;
+    int offset_bottom_row_; ///< row number to offset
   };
   
   
