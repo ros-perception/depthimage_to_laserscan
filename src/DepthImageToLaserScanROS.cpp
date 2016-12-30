@@ -88,5 +88,5 @@ void DepthImageToLaserScanROS::reconfigureCb(depthimage_to_laserscan::DepthConfi
     dtl_.set_range_limits(config.range_min, config.range_max);
     dtl_.set_scan_height(config.scan_height);
     dtl_.set_output_frame(config.output_frame_id);
-    dtl_.set_height_limits(config.offset_bottom_row, config.height_min, config.height_max);
+    dtl_.set_height_limits(config.height_min, config.height_max, config.offset_bottom_row);
 }
