@@ -161,8 +161,7 @@ void DepthImageToLaserScan::set_output_frame(const std::string output_frame_id){
   output_frame_id_ = output_frame_id;
 }
 
-void DepthImageToLaserScan::set_height_limits(const float height_min, const float height_max, const int offset_bottom_row){
+void DepthImageToLaserScan::set_height_limits(const float height_min, const float height_max){
   height_min_ = height_min;
   height_max_ = height_max;
-  offset_bottom_row_ = offset_bottom_row;
 }
