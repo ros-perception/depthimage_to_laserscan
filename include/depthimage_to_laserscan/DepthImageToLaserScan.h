@@ -209,15 +209,13 @@ namespace depthimage_to_laserscan
       double tf_basis_2_2 = transform.getBasis()[2][2];
       double tf_origin_z = transform.getOrigin().z();
 
-      // determine lower bound of pixel row to scan
-      // given height_min_ and range_min_, calculate the corresponding row in the image and start depth image conversion from there
+      // determine lower bound and upper_bound of pixel row to scan
+      // given height_min_, range_min_ and range_max_, calculate the corresponding row in the image and start depth image conversion from there
       int lower_bound = (height_min_ - tf_origin_z) / range_min_ / 1000 / constant_y + center_y;
-      ROS_DEBUG("lower bound of scanning is set to: %d", lower_bound);
+      int upper_bound = (height_max_ - tf_origin_z) / range_max_ / 1000 / constant_y + center_y;
+      upper_bound = std::min(lower_bound + scan_height, std::min(upper_bound, (int)depth_msg->height));
 
-      int upper_bound = lower_bound + scan_height;
-      if(upper_bound > depth_msg->height){
-        upper_bound = depth_msg->height;
-      }
+      ROS_DEBUG("upper_bound and lower_bound of depth image are set to: %d and %d", upper_bound, lower_bound);
 
       depth_row += lower_bound * row_step; // Offset to starting pixel
 
