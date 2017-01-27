@@ -115,6 +115,13 @@ namespace depthimage_to_laserscan
      */
     void set_output_frame(const std::string output_frame_id);
 
+    /**
+     * Sets the minimum, maximum height threshold for the rectified pointcloud.
+     * Inside the function, we rectify depth image to 3D points in world frame. Since the points picked up from floor or high ceiling are mostly noise, we set the constraint to filter them out.
+     *
+     * @param height_min Minimum height for a rectified 3D point.
+     * @param height_max Maximum height for a rectified 3D point.
+     */
     void set_height_limits(const float height_min, const float height_max);
 
   private:
@@ -178,18 +185,14 @@ namespace depthimage_to_laserscan
       // Since we setup the camera upside down, the principle point shifts.
       float center_x = depth_msg->width - cam_model.cx();
       float center_y = depth_msg->height - cam_model.cy();
-      
+
       // Combine unit conversion (if necessary) with scaling by focal length for computing (X,Y)
       double unit_scaling = depthimage_to_laserscan::DepthTraits<T>::toMeters( T(1) );
       float constant_x = unit_scaling / cam_model.fx();
       float constant_y = unit_scaling / cam_model.fy();
-      
+
       const T* depth_row = reinterpret_cast<const T*>(&depth_msg->data[0]);
       int row_step = depth_msg->step / sizeof(T);
-
-      // offset by certain amonut since the bottom 150 row are mostly floor (noisy data)
-      int offset = (int)(center_y - scan_height/2 + OFFSET_BOTTOM_ROW/2);
-      depth_row += offset*row_step; // Offset to center of image
 
       // listen to transform only once to avoid overhead
       tf::StampedTransform transform;
@@ -206,11 +209,22 @@ namespace depthimage_to_laserscan
       double tf_basis_2_2 = transform.getBasis()[2][2];
       double tf_origin_z = transform.getOrigin().z();
 
-      for(int v = offset; v < offset+scan_height_; v++, depth_row += row_step){
+      // determine lower bound and upper_bound of pixel row to scan
+      // given height_min_, range_min_ and range_max_, calculate the corresponding row in the image and start depth image conversion from there
+      int lower_bound = (height_min_ - tf_origin_z) / range_min_ / 1000 / constant_y + center_y;
+      lower_bound = std::max(0, lower_bound);
+      int upper_bound = (height_max_ - tf_origin_z) / range_min_ / 1000 / constant_y + center_y;
+      upper_bound = std::min(lower_bound + scan_height, std::min(upper_bound, (int)depth_msg->height));
+
+      ROS_DEBUG("upper_bound and lower_bound of depth image are set to: %d and %d", upper_bound, lower_bound);
+
+      depth_row += lower_bound * row_step; // Offset to starting pixel
+
+      for(int v = lower_bound; v < upper_bound; v++, depth_row += row_step){
 	for (int u = 0; u < (int)depth_msg->width; u++) // Loop over each pixel in row
 	{	
 	  T depth = depth_row[u];
-		  
+
 	  double r = depth; // Assign to pass through NaNs and Infs
 	  double th = -atan2((double)(u - center_x) * constant_x, unit_scaling); // Atan2(x, z), but depth divides out
 	  int index = (th - scan_msg->angle_min) / scan_msg->angle_increment;
@@ -234,8 +248,7 @@ namespace depthimage_to_laserscan
 
             // Calculate actual distance
 	    r = sqrt(pow(x, 2.0) + pow(z, 2.0));
-	  
-	  
+
 	    // Determine if this point should be used.
 	    if(use_point(r, scan_msg->ranges[index], scan_msg->range_min, scan_msg->range_max)){
 	      scan_msg->ranges[index] = r;
@@ -253,9 +266,8 @@ namespace depthimage_to_laserscan
     int scan_height_; ///< Number of pixel rows to use when producing a laserscan from an area.
     std::string output_frame_id_; ///< Output frame_id for each laserscan.  This is likely NOT the camera's frame_id.
     tf::TransformListener listener_; ///< TF listener for retrieving transform between frames.
-    float height_min_;
+    float height_min_; ///< height threshold for rectified laser point
     float height_max_;
-    static const int OFFSET_BOTTOM_ROW = 150;
   };
   
   
