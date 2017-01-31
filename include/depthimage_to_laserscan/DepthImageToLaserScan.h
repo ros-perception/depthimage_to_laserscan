@@ -182,9 +182,8 @@ namespace depthimage_to_laserscan
     void convert(const sensor_msgs::ImageConstPtr& depth_msg, const image_geometry::PinholeCameraModel& cam_model, 
 		 const sensor_msgs::LaserScanPtr& scan_msg, const int& scan_height) const{
       // Use correct principal point from calibration
-      // Since we setup the camera upside down, the principle point shifts.
-      float center_x = depth_msg->width - cam_model.cx();
-      float center_y = depth_msg->height - cam_model.cy();
+      float center_x = cam_model.cx();
+      float center_y = cam_model.cy();
 
       // Combine unit conversion (if necessary) with scaling by focal length for computing (X,Y)
       double unit_scaling = depthimage_to_laserscan::DepthTraits<T>::toMeters( T(1) );
@@ -210,13 +209,13 @@ namespace depthimage_to_laserscan
       double tf_origin_z = transform.getOrigin().z();
 
       // determine lower bound and upper_bound of pixel row to scan
-      // given height_min_, range_min_ and range_max_, calculate the corresponding row in the image and start depth image conversion from there
+      // given height_min_, range_min_, calculate the corresponding row in the image and start depth image conversion from there
       int lower_bound = (height_min_ - tf_origin_z) / range_min_ / 1000 / constant_y + center_y;
-      lower_bound = std::max(0, lower_bound);
+      lower_bound = std::max((int)center_y - scan_height / 2, std::max(0, lower_bound));
       int upper_bound = (height_max_ - tf_origin_z) / range_min_ / 1000 / constant_y + center_y;
       upper_bound = std::min(lower_bound + scan_height, std::min(upper_bound, (int)depth_msg->height));
 
-      ROS_DEBUG("upper_bound and lower_bound of depth image are set to: %d and %d", upper_bound, lower_bound);
+      ROS_DEBUG("Upper_bound and lower_bound of depth image scan band are set to: %d and %d", upper_bound, lower_bound);
 
       depth_row += lower_bound * row_step; // Offset to starting pixel
 
