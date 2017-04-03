@@ -61,7 +61,6 @@ namespace depthimage_to_laserscan
      * Synchronized callback for depth image and camera info.  Publishes laserscan at the end of this callback.
      * 
      * @param depth_msg Image provided by image_transport.
-     * @param info_msg CameraInfo provided by image_transport.
      * 
      */
     void depthCb(const sensor_msgs::ImageConstPtr& depth_msg);
@@ -100,8 +99,9 @@ namespace depthimage_to_laserscan
     image_transport::Subscriber sub_; ///< Subscriber for image_transport
     ros::Publisher pub_; ///< Publisher for output LaserScan messages
     dynamic_reconfigure::Server<depthimage_to_laserscan::DepthConfig> srv_; ///< Dynamic reconfigure server
-    ros::Subscriber camera_info_sub_;
-    sensor_msgs::CameraInfo camera_info_;
+
+    sensor_msgs::CameraInfoConstPtr camera_info_;
+
     depthimage_to_laserscan::DepthImageToLaserScan dtl_; ///< Instance of the DepthImageToLaserScan conversion class.
     
     boost::mutex connect_mutex_; ///< Prevents the connectCb and disconnectCb from being called until everything is initialized.
