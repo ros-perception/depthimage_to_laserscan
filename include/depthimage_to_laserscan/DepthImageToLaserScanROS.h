@@ -37,6 +37,7 @@
 #include <ros/ros.h>
 #include <image_transport/image_transport.h>
 #include <sensor_msgs/Image.h>
+#include <sensor_msgs/CameraInfo.h>
 #include <sensor_msgs/LaserScan.h>
 #include <boost/thread/mutex.hpp>
 #include <dynamic_reconfigure/server.h>
@@ -63,8 +64,7 @@ namespace depthimage_to_laserscan
      * @param info_msg CameraInfo provided by image_transport.
      * 
      */
-    void depthCb(const sensor_msgs::ImageConstPtr& depth_msg,
-		  const sensor_msgs::CameraInfoConstPtr& info_msg);
+    void depthCb(const sensor_msgs::ImageConstPtr& depth_msg);
 
     /**
      * Callback that is called when there is a new subscriber.
@@ -93,12 +93,15 @@ namespace depthimage_to_laserscan
      */
     void reconfigureCb(depthimage_to_laserscan::DepthConfig& config, uint32_t level);
     
+    void onCameraData(const sensor_msgs::CameraInfoConstPtr& info_msg);
+
     ros::NodeHandle pnh_; ///< Private nodehandle used to generate the transport hints in the connectCb.
     image_transport::ImageTransport it_; ///< Subscribes to synchronized Image CameraInfo pairs.
-    image_transport::CameraSubscriber sub_; ///< Subscriber for image_transport
+    image_transport::Subscriber sub_; ///< Subscriber for image_transport
     ros::Publisher pub_; ///< Publisher for output LaserScan messages
     dynamic_reconfigure::Server<depthimage_to_laserscan::DepthConfig> srv_; ///< Dynamic reconfigure server
-    
+    ros::Subscriber camera_info_sub_;
+    sensor_msgs::CameraInfo camera_info_;
     depthimage_to_laserscan::DepthImageToLaserScan dtl_; ///< Instance of the DepthImageToLaserScan conversion class.
     
     boost::mutex connect_mutex_; ///< Prevents the connectCb and disconnectCb from being called until everything is initialized.

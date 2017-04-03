@@ -35,13 +35,15 @@
 
 using namespace depthimage_to_laserscan;
   
-DepthImageToLaserScanROS::DepthImageToLaserScanROS(ros::NodeHandle& n, ros::NodeHandle& pnh):pnh_(pnh), it_(n), srv_(pnh) {
+DepthImageToLaserScanROS::DepthImageToLaserScanROS(ros::NodeHandle& n, ros::NodeHandle& pnh):pnh_(pnh), it_(n), srv_(pnh),
+  camera_info_sub_(n.subscribe<sensor_msgs::CameraInfo>("/internal/sensors/rgbd/depth/camera_info", 100, boost::bind(&DepthImageToLaserScanROS::onCameraData, this, _1))) {
   boost::mutex::scoped_lock lock(connect_mutex_);
   
   // Dynamic Reconfigure
   dynamic_reconfigure::Server<depthimage_to_laserscan::DepthConfig>::CallbackType f;
   f = boost::bind(&DepthImageToLaserScanROS::reconfigureCb, this, _1, _2);
   srv_.setCallback(f);
+
   
   // Lazy subscription to depth image topic
   pub_ = n.advertise<sensor_msgs::LaserScan>("scan", 10, boost::bind(&DepthImageToLaserScanROS::connectCb, this, _1), boost::bind(&DepthImageToLaserScanROS::disconnectCb, this, _1));
@@ -51,13 +53,16 @@ DepthImageToLaserScanROS::~DepthImageToLaserScanROS(){
   sub_.shutdown();
 }
 
+void DepthImageToLaserScanROS::onCameraData(const sensor_msgs::CameraInfoConstPtr& info_msg)
+{
+  camera_info_ = *(info_msg);
+}
 
-
-void DepthImageToLaserScanROS::depthCb(const sensor_msgs::ImageConstPtr& depth_msg,
-	      const sensor_msgs::CameraInfoConstPtr& info_msg){
+void DepthImageToLaserScanROS::depthCb(const sensor_msgs::ImageConstPtr& depth_msg){
   try
   {
-    sensor_msgs::LaserScanPtr scan_msg = dtl_.convert_msg(depth_msg, info_msg);
+    sensor_msgs::CameraInfoConstPtr info_ptr( new sensor_msgs::CameraInfo( camera_info_ ) );
+    sensor_msgs::LaserScanPtr scan_msg = dtl_.convert_msg(depth_msg, info_ptr);
     pub_.publish(scan_msg);
   }
   catch (std::runtime_error& e)
@@ -71,7 +76,7 @@ void DepthImageToLaserScanROS::connectCb(const ros::SingleSubscriberPublisher& p
   if (!sub_ && pub_.getNumSubscribers() > 0) {
     ROS_DEBUG("Connecting to depth topic.");
     image_transport::TransportHints hints("raw", ros::TransportHints(), pnh_);
-    sub_ = it_.subscribeCamera("image", 10, &DepthImageToLaserScanROS::depthCb, this, hints);
+    sub_ = it_.subscribe("image", 10, &DepthImageToLaserScanROS::depthCb, this, hints);
   }
 }
 
