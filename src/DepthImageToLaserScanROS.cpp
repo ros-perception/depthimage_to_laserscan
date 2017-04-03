@@ -57,6 +57,7 @@ DepthImageToLaserScanROS::~DepthImageToLaserScanROS(){
 void DepthImageToLaserScanROS::depthCb(const sensor_msgs::ImageConstPtr& depth_msg){
   try
   {
+    // if camera_info hasn't received, fetch the camera_info again
     if(camera_info_ == NULL)
     {
       ROS_ERROR("depthimage_to_laserscan node hasn't received camera_info.");

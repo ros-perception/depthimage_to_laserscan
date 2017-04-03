@@ -58,7 +58,7 @@ namespace depthimage_to_laserscan
     /**
      * Callback for image_transport
      * 
-     * Synchronized callback for depth image and camera info.  Publishes laserscan at the end of this callback.
+     * Callback for depth image.  Publishes laserscan at the end of this callback.
      * 
      * @param depth_msg Image provided by image_transport.
      * 
@@ -92,15 +92,13 @@ namespace depthimage_to_laserscan
      */
     void reconfigureCb(depthimage_to_laserscan::DepthConfig& config, uint32_t level);
     
-    void onCameraData(const sensor_msgs::CameraInfoConstPtr& info_msg);
-
     ros::NodeHandle pnh_; ///< Private nodehandle used to generate the transport hints in the connectCb.
     image_transport::ImageTransport it_; ///< Subscribes to synchronized Image CameraInfo pairs.
     image_transport::Subscriber sub_; ///< Subscriber for image_transport
     ros::Publisher pub_; ///< Publisher for output LaserScan messages
     dynamic_reconfigure::Server<depthimage_to_laserscan::DepthConfig> srv_; ///< Dynamic reconfigure server
 
-    sensor_msgs::CameraInfoConstPtr camera_info_;
+    sensor_msgs::CameraInfoConstPtr camera_info_; ///< CameraInfo message
 
     depthimage_to_laserscan::DepthImageToLaserScan dtl_; ///< Instance of the DepthImageToLaserScan conversion class.
     
