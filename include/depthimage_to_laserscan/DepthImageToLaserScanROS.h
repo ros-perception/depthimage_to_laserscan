@@ -101,7 +101,10 @@ namespace depthimage_to_laserscan
     sensor_msgs::CameraInfoConstPtr camera_info_; ///< CameraInfo message
 
     depthimage_to_laserscan::DepthImageToLaserScan dtl_; ///< Instance of the DepthImageToLaserScan conversion class.
-    
+
+    ros::Time firstOpticalFrameTime_; ///< The time of the first received scan
+    tf::TransformListener listener_; ///< TF listener for retrieving transform between frames.
+
     boost::mutex connect_mutex_; ///< Prevents the connectCb and disconnectCb from being called until everything is initialized.
   };
   
