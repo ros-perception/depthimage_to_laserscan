@@ -63,7 +63,33 @@ void DepthImageToLaserScanROS::depthCb(const sensor_msgs::ImageConstPtr& depth_m
       ROS_ERROR("depthimage_to_laserscan node hasn't received camera_info. Will keep trying");
       return ;
     }
-    sensor_msgs::LaserScanPtr scan_msg = dtl_.convert_msg(depth_msg, camera_info_);
+
+    const tf::StampedTransform& depthOpticalTransform;
+
+    // listen to transform only once to avoid overhead
+    try
+    {
+        listener_.lookupTransform("/map", "/camera_depth_optical_frame", ros::Time(0), depthOpticalTransform);
+    }
+    catch (tf::TransformException &ex)
+    {
+        // Number of seconds to wait for static publisher before logging an error
+        const ros::Duration opticalFrameTimeout(5, 0);
+
+        if (!firstOpticalFrameTime_.isValid())
+        {
+            firstOpticalFrameTime_ == ros::Time::now();
+        }
+        else if ((ros::Time::now() - firstOpticalFrameTime_) > opticalFrameTimeout)
+        {
+            ROS_ERROR_THROTTLE(5.0, "Depth Image to Laserscan: %s", ex.what());
+        }
+
+        return;
+      }
+    }
+
+    sensor_msgs::LaserScanPtr scan_msg = dtl_.convert_msg(depth_msg, camera_info_, depthOpticalTransform);
     pub_.publish(scan_msg);
   }
   catch (std::runtime_error& e)
