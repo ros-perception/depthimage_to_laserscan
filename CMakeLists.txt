@@ -40,7 +40,7 @@ endif()
 add_executable(test_dtl EXCLUDE_FROM_ALL test/depthimage_to_laserscan_rostest.cpp)
 
 # Install targets
-install(TARGETS DepthImageToLaserScan depthimage_to_laserscan
+install(TARGETS DepthImageToLaserScan depthimage_to_laserscan DepthImageToLaserScanROS DepthImageToLaserScanNodelet
 	RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 	LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 	ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION})
