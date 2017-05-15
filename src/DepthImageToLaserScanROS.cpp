@@ -64,7 +64,7 @@ void DepthImageToLaserScanROS::depthCb(const sensor_msgs::ImageConstPtr& depth_m
       return ;
     }
 
-    const tf::StampedTransform& depthOpticalTransform;
+    tf::StampedTransform depthOpticalTransform;
 
     // listen to transform only once to avoid overhead
     try
@@ -86,7 +86,6 @@ void DepthImageToLaserScanROS::depthCb(const sensor_msgs::ImageConstPtr& depth_m
         }
 
         return;
-      }
     }
 
     sensor_msgs::LaserScanPtr scan_msg = dtl_.convert_msg(depth_msg, camera_info_, depthOpticalTransform);
