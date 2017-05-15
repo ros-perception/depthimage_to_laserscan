@@ -198,7 +198,18 @@ namespace depthimage_to_laserscan
       try{
         listener_.lookupTransform("/map", "/camera_depth_optical_frame", ros::Time(0), transform);
       } catch (tf::TransformException &ex){
-        ROS_ERROR("%s", ex.what());
+        // Number of seconds to wait for static publisher before logging an error
+        const ros::Duration opticalFrameTimeout(5, 0);
+
+        if (!firstOpticalFrameTime_.isValid())
+        {
+          firstOpticalFrameTime_ == ros::Time::now();
+        }
+        else if ((ros::Time::now() - firstOpticalFrameTime_) > opticalFrameTimeout)
+        {
+          ROS_ERROR_THROTTLE(5.0, "Depth Image to Laserscan: %s", ex.what());
+        }
+
         return;
       }
 
@@ -267,6 +278,8 @@ namespace depthimage_to_laserscan
     tf::TransformListener listener_; ///< TF listener for retrieving transform between frames.
     float height_min_; ///< height threshold for rectified laser point
     float height_max_;
+
+    ros::Time firstOpticalFrameTime_;
   };
   
   
