@@ -46,9 +46,9 @@
 class Test_DepthImage : public ::testing::Test
 {
 public:
-	Test_DepthImage()
-	{
-	    transform_.setData(tf::Transform::getIdentity());
+    Test_DepthImage()
+    {
+        transform_.setData(tf::Transform::getIdentity());
 
         depth_msg_.reset(new sensor_msgs::Image);
         depth_msg_->header.seq = 42;
@@ -81,9 +81,9 @@ public:
         info_msg_->P[5] = 570.3422241210938;
         info_msg_->P[6] = 235.5;
         info_msg_->P[10] = 1.0;
-	}
+    }
 
-	virtual ~Test_DepthImage() {}
+    virtual ~Test_DepthImage() {}
 
 public:
 
