@@ -49,6 +49,38 @@ public:
 	Test_DepthImage()
 	{
 	    transform_.setData(tf::Transform::getIdentity());
+
+        depth_msg_.reset(new sensor_msgs::Image);
+        depth_msg_->header.seq = 42;
+        depth_msg_->header.stamp.fromNSec(1234567890);
+        depth_msg_->header.frame_id = "frame";
+        depth_msg_->height = 480;
+        depth_msg_->width = 640;
+        depth_msg_->encoding = sensor_msgs::image_encodings::TYPE_16UC1;
+        depth_msg_->is_bigendian = false;
+        depth_msg_->step = depth_msg_->width*2; // 2 bytes per pixel
+        uint16_t value = 0x0F;
+        depth_msg_->data.assign(depth_msg_->height*depth_msg_->step, value); // Sets all values to 3.855m
+
+        info_msg_.reset(new sensor_msgs::CameraInfo);
+        info_msg_->header = depth_msg_->header;
+        info_msg_->height = depth_msg_->height;
+        info_msg_->width = depth_msg_->width;
+        info_msg_->distortion_model = "plumb_bob";
+        info_msg_->D.resize(5); // All 0, no distortion
+        info_msg_->K[0] = 570.3422241210938;
+        info_msg_->K[2] = 314.5;
+        info_msg_->K[4] = 570.3422241210938;
+        info_msg_->K[5] = 235.5;
+        info_msg_->K[8] = 1.0;
+        info_msg_->R[0] = 1.0;
+        info_msg_->R[4] = 1.0;
+        info_msg_->R[8] = 1.0;
+        info_msg_->P[0] = 570.3422241210938;
+        info_msg_->P[2] = 314.5;
+        info_msg_->P[5] = 570.3422241210938;
+        info_msg_->P[6] = 235.5;
+        info_msg_->P[10] = 1.0;
 	}
 
 	virtual ~Test_DepthImage() {}
@@ -77,38 +109,6 @@ TEST_F(Test_DepthImage, setupLibrary)
   dtl_.set_scan_height(scan_height);
   const std::string output_frame = "camera_depth_frame";
   dtl_.set_output_frame(output_frame);
-  
-  depth_msg_.reset(new sensor_msgs::Image);
-  depth_msg_->header.seq = 42;
-  depth_msg_->header.stamp.fromNSec(1234567890);
-  depth_msg_->header.frame_id = "frame";
-  depth_msg_->height = 480;
-  depth_msg_->width = 640;
-  depth_msg_->encoding = sensor_msgs::image_encodings::TYPE_16UC1;
-  depth_msg_->is_bigendian = false;
-  depth_msg_->step = depth_msg_->width*2; // 2 bytes per pixel
-  uint16_t value = 0x0F;
-  depth_msg_->data.assign(depth_msg_->height*depth_msg_->step, value); // Sets all values to 3.855m
-  
-  info_msg_.reset(new sensor_msgs::CameraInfo);
-  info_msg_->header = depth_msg_->header;
-  info_msg_->height = depth_msg_->height;
-  info_msg_->width = depth_msg_->width;
-  info_msg_->distortion_model = "plumb_bob";
-  info_msg_->D.resize(5); // All 0, no distortion
-  info_msg_->K[0] = 570.3422241210938;
-  info_msg_->K[2] = 314.5;
-  info_msg_->K[4] = 570.3422241210938;
-  info_msg_->K[5] = 235.5;
-  info_msg_->K[8] = 1.0;
-  info_msg_->R[0] = 1.0;
-  info_msg_->R[4] = 1.0;
-  info_msg_->R[8] = 1.0;
-  info_msg_->P[0] = 570.3422241210938;
-  info_msg_->P[2] = 314.5;
-  info_msg_->P[5] = 570.3422241210938;
-  info_msg_->P[6] = 235.5;
-  info_msg_->P[10] = 1.0;
 
   sensor_msgs::LaserScanPtr scan_msg = dtl_.convert_msg(depth_msg_, info_msg_, transform_);
   
@@ -256,7 +256,7 @@ TEST_F(Test_DepthImage, testPositiveInf)
     }
   }
   
-  ASSERT_LE(nan_count, scan_msg->ranges.size() * 0.80);
+  ASSERT_EQ(nan_count, scan_msg->ranges.size());
 }
 
 // Test to preserve -Inf
@@ -288,7 +288,7 @@ TEST_F(Test_DepthImage, testNegativeInf)
     }
   }
   
-  ASSERT_LE(nan_count, scan_msg->ranges.size() * 0.80);
+  ASSERT_EQ(nan_count, scan_msg->ranges.size());
 }
 
 
