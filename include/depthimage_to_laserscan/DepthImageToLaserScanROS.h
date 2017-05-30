@@ -105,7 +105,9 @@ namespace depthimage_to_laserscan
     ros::Time firstOpticalFrameTime_; ///< The time of the first received scan
     tf::TransformListener listener_; ///< TF listener for retrieving transform between frames.
 
-    uint32_t lastMsgSeq_;
+    const static uint8_t EXPECTED_IMAGE_FREQUENCY = 30;
+    const static float MAX_ALLOWED_IMAGE_DELAY = 0.01; // 10 ms
+    ros::Time lastImageReceivedTime_; ///< The time of last received image message
 
     boost::mutex connect_mutex_; ///< Prevents the connectCb and disconnectCb from being called until everything is initialized.
   };

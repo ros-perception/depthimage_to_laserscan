@@ -35,7 +35,7 @@
 
 using namespace depthimage_to_laserscan;
   
-DepthImageToLaserScanROS::DepthImageToLaserScanROS(ros::NodeHandle& n, ros::NodeHandle& pnh):pnh_(pnh), it_(n), srv_(pnh), lastMsgSeq_(0) {
+DepthImageToLaserScanROS::DepthImageToLaserScanROS(ros::NodeHandle& n, ros::NodeHandle& pnh):pnh_(pnh), it_(n), srv_(pnh) {
   boost::mutex::scoped_lock lock(connect_mutex_);
   
   // Dynamic Reconfigure
@@ -88,17 +88,18 @@ void DepthImageToLaserScanROS::depthCb(const sensor_msgs::ImageConstPtr& depth_m
         return;
     }
 
-    if(lastMsgSeq_ > 0)
+    if(lastImageReceivedTime_.isValid())
     {
-      if((depth_msg->header.seq - lastMsgSeq_) > 1)
+      double procTime = (depth_msg->header.stamp - lastImageReceivedTime_).toSec();
+      if(procTime > (1.0f / EXPECTED_IMAGE_FREQUENCY + MAX_ALLOWED_IMAGE_DELAY))
       {
-        ROS_INFO_THROTTLE(1, "Lost sensor_msgs::Image message");
+        ROS_INFO_THROTTLE(1, "Message receiving time (%f sec) is larger than expected (%f sec)", procTime, 1.0 / EXPECTED_IMAGE_FREQUENCY);
       }
     }
 
     sensor_msgs::LaserScanPtr scan_msg = dtl_.convert_msg(depth_msg, camera_info_, depthOpticalTransform);
     pub_.publish(scan_msg);
-    lastMsgSeq_ = depth_msg->header.seq;
+    lastImageReceivedTime_ = depth_msg->header.stamp;
   }
   catch (std::runtime_error& e)
   {
