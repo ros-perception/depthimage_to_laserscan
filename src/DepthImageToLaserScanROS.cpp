@@ -35,7 +35,7 @@
 
 using namespace depthimage_to_laserscan;
   
-DepthImageToLaserScanROS::DepthImageToLaserScanROS(ros::NodeHandle& n, ros::NodeHandle& pnh):pnh_(pnh), it_(n), srv_(pnh) {
+DepthImageToLaserScanROS::DepthImageToLaserScanROS(ros::NodeHandle& n, ros::NodeHandle& pnh):pnh_(pnh), it_(n), srv_(pnh), lastMsgSeq_(0) {
   boost::mutex::scoped_lock lock(connect_mutex_);
   
   // Dynamic Reconfigure
@@ -88,8 +88,17 @@ void DepthImageToLaserScanROS::depthCb(const sensor_msgs::ImageConstPtr& depth_m
         return;
     }
 
+    if(lastMsgSeq_ > 0)
+    {
+      if((depth_msg->header.seq - lastMsgSeq_) > 1)
+      {
+        ROS_INFO_THROTTLE(1, "Lost sensor_msgs::Image message");
+      }
+    }
+
     sensor_msgs::LaserScanPtr scan_msg = dtl_.convert_msg(depth_msg, camera_info_, depthOpticalTransform);
     pub_.publish(scan_msg);
+    lastMsgSeq_ = depth_msg->header.seq;
   }
   catch (std::runtime_error& e)
   {
