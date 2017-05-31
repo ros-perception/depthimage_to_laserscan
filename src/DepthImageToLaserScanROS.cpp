@@ -94,8 +94,18 @@ void DepthImageToLaserScanROS::depthCb(const sensor_msgs::ImageConstPtr& depth_m
         return;
     }
 
+    if(lastImageReceivedTime_.isValid())
+    {
+      double procTime = (depth_msg->header.stamp - lastImageReceivedTime_).toSec();
+      if(procTime > (1.0f / EXPECTED_IMAGE_FREQUENCY + MAX_ALLOWED_IMAGE_DELAY))
+      {
+        ROS_INFO_THROTTLE(1, "Message receiving time (%f sec) is larger than expected (%f sec)", procTime, 1.0 / EXPECTED_IMAGE_FREQUENCY);
+      }
+    }
+
     sensor_msgs::LaserScanPtr scan_msg = dtl_.convert_msg(depth_msg, camera_info_, depthOpticalTransform);
     pub_.publish(scan_msg);
+    lastImageReceivedTime_ = depth_msg->header.stamp;
   }
   catch (std::runtime_error& e)
   {
@@ -108,7 +118,7 @@ void DepthImageToLaserScanROS::connectCb(const ros::SingleSubscriberPublisher& p
   if (!sub_ && pub_.getNumSubscribers() > 0) {
     ROS_DEBUG("Connecting to depth topic.");
     image_transport::TransportHints hints("raw", ros::TransportHints(), pnh_);
-    sub_ = it_.subscribe("image", 10, &DepthImageToLaserScanROS::depthCb, this, hints);
+    sub_ = it_.subscribe("image", 1, &DepthImageToLaserScanROS::depthCb, this, hints);
   }
 }
 
