@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 2.8)
 project(depthimage_to_laserscan)
 
 # Load catkin and all dependencies required for this package
-find_package(catkin REQUIRED dynamic_reconfigure image_geometry image_transport nodelet roscpp sensor_msgs)
+find_package(catkin REQUIRED dynamic_reconfigure image_geometry image_transport nodelet roscpp sensor_msgs tf)
 #find_package(OpenCV REQUIRED)
 
 # Dynamic reconfigure support
@@ -40,7 +40,7 @@ endif()
 add_executable(test_dtl EXCLUDE_FROM_ALL test/depthimage_to_laserscan_rostest.cpp)
 
 # Install targets
-install(TARGETS DepthImageToLaserScan DepthImageToLaserScanROS DepthImageToLaserScanNodelet depthimage_to_laserscan
+install(TARGETS DepthImageToLaserScan depthimage_to_laserscan DepthImageToLaserScanROS DepthImageToLaserScanNodelet
 	RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 	LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 	ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION})
