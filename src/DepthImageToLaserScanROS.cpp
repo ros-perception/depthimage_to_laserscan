@@ -66,10 +66,16 @@ void DepthImageToLaserScanROS::depthCb(const sensor_msgs::ImageConstPtr& depth_m
 
     tf::StampedTransform depthOpticalTransform;
 
+    bool failed = false;
+
     // listen to transform only once to avoid overhead
     try
     {
-        listener_.lookupTransform("/map", "/camera_depth_optical_frame", ros::Time(0), depthOpticalTransform);
+        if (listener_.canTransform("/map", "/camera_depth_optical_frame", ros::Time(0))) {
+            listener_.lookupTransform("/map", "/camera_depth_optical_frame", ros::Time(0), depthOpticalTransform);
+        } else {
+            throw new tf::TransformException("Failed to transform /map to /camera_depth_optical_frame");
+        }
     }
     catch (tf::TransformException &ex)
     {
