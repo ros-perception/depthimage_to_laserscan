@@ -94,10 +94,10 @@ void DepthImageToLaserScanROS::depthCb(const sensor_msgs::ImageConstPtr& depth_m
 
     if(lastImageReceivedTime_.isValid())
     {
-      double procTime = (depth_msg->header.stamp - lastImageReceivedTime_).toSec();
-      if(procTime > (1.0f / EXPECTED_IMAGE_FREQUENCY + MAX_ALLOWED_IMAGE_DELAY))
+      double receivingTime = (depth_msg->header.stamp - lastImageReceivedTime_).toSec();
+      if(receivingTime > (1.0f / EXPECTED_IMAGE_FREQUENCY + MAX_ALLOWED_IMAGE_DELAY))
       {
-        ROS_INFO_THROTTLE(1, "Message receiving time (%f sec) is larger than expected (%f sec)", procTime, 1.0 / EXPECTED_IMAGE_FREQUENCY);
+        ROS_INFO_THROTTLE(1, "Message receiving time (%f sec) is larger than expected (%f sec)", receivingTime, 1.0 / EXPECTED_IMAGE_FREQUENCY);
       }
     }
 
