@@ -66,8 +66,6 @@ void DepthImageToLaserScanROS::depthCb(const sensor_msgs::ImageConstPtr& depth_m
 
     tf::StampedTransform depthOpticalTransform;
 
-    bool failed = false;
-
     // listen to transform only once to avoid overhead
     try
     {
