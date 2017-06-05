@@ -1,53 +1,61 @@
-# http://ros.org/doc/groovy/api/catkin/html/user_guide/supposed.html
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.5)
 project(depthimage_to_laserscan)
-
-# Load catkin and all dependencies required for this package
-find_package(catkin REQUIRED dynamic_reconfigure image_geometry image_transport nodelet roscpp sensor_msgs)
-#find_package(OpenCV REQUIRED)
-
-# Dynamic reconfigure support
-generate_dynamic_reconfigure_options(cfg/Depth.cfg)
-
-catkin_package(
-  INCLUDE_DIRS include
-  LIBRARIES DepthImageToLaserScan DepthImageToLaserScanROS DepthImageToLaserScanNodelet
-  CATKIN_DEPENDS dynamic_reconfigure image_geometry image_transport nodelet roscpp sensor_msgs
-)
-
-include_directories(include ${catkin_INCLUDE_DIRS})
-
-add_library(DepthImageToLaserScan src/DepthImageToLaserScan.cpp)
-target_link_libraries(DepthImageToLaserScan ${catkin_LIBRARIES})
-
-add_library(DepthImageToLaserScanROS src/DepthImageToLaserScanROS.cpp)
-add_dependencies(DepthImageToLaserScanROS ${PROJECT_NAME}_gencfg)
-target_link_libraries(DepthImageToLaserScanROS DepthImageToLaserScan ${catkin_LIBRARIES})
-
-add_library(DepthImageToLaserScanNodelet src/DepthImageToLaserScanNodelet.cpp)
-target_link_libraries(DepthImageToLaserScanNodelet DepthImageToLaserScanROS ${catkin_LIBRARIES})
-
-add_executable(depthimage_to_laserscan src/depthimage_to_laserscan.cpp)
-target_link_libraries(depthimage_to_laserscan DepthImageToLaserScanROS ${catkin_LIBRARIES})
-
-if(CATKIN_ENABLE_TESTING)
-  # Test the library
-  catkin_add_gtest(libtest test/DepthImageToLaserScanTest.cpp)
-  target_link_libraries(libtest DepthImageToLaserScan ${catkin_LIBRARIES})
+if(NOT WIN32)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -Wall -Wextra -Wpedantic")
 endif()
 
-# add the test executable, keep it from being built by "make all"
-add_executable(test_dtl EXCLUDE_FROM_ALL test/depthimage_to_laserscan_rostest.cpp)
+find_package(ament_cmake_ros REQUIRED)
 
-# Install targets
-install(TARGETS DepthImageToLaserScan DepthImageToLaserScanROS DepthImageToLaserScanNodelet depthimage_to_laserscan
-	RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-	LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-	ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION})
+find_package(image_geometry REQUIRED)
+find_package(OpenCV REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(sensor_msgs REQUIRED)
 
-install(DIRECTORY include/${PROJECT_NAME}/
-        DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+include_directories(include)
+
+add_library(DepthImageToLaserScan
+  src/DepthImageToLaserScan.cpp
 )
-install(FILES nodelets.xml
-        DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+ament_target_dependencies(DepthImageToLaserScan
+  "image_geometry"
+  "OpenCV"
+  "sensor_msgs"
 )
+
+add_library(DepthImageToLaserScanROS
+  src/DepthImageToLaserScanROS.cpp
+)
+ament_target_dependencies(DepthImageToLaserScanROS
+  "rclcpp"
+)
+target_link_libraries(DepthImageToLaserScanROS DepthImageToLaserScan)
+
+add_executable(depthimage_to_laserscan_node
+  src/depthimage_to_laserscan.cpp
+)
+target_link_libraries(depthimage_to_laserscan_node
+  DepthImageToLaserScan
+  DepthImageToLaserScanROS
+)
+
+install(DIRECTORY include/
+  DESTINATION include
+)
+
+install(TARGETS DepthImageToLaserScan DepthImageToLaserScanROS depthimage_to_laserscan_node
+  EXPORT export_depthimage_to_laserscan_node
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+)
+
+if(BUILD_TESTING)
+  find_package(ament_cmake_gtest REQUIRED)
+
+  ament_add_gtest(${PROJECT_NAME}-test test/DepthImageToLaserScanTest.cpp)
+  target_link_libraries(${PROJECT_NAME}-test DepthImageToLaserScan)
+endif()
+
+ament_export_include_directories(include)
+ament_export_libraries(DepthImageToLaserScan DepthImageToLaserScanROS)
+ament_package()

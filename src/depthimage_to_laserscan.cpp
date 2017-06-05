@@ -34,13 +34,15 @@
 #include <depthimage_to_laserscan/DepthImageToLaserScanROS.h>
 
 int main(int argc, char **argv){
-  ros::init(argc, argv, "depthimage_to_laserscan");
-  ros::NodeHandle n;
-  ros::NodeHandle pnh("~");
-  
-  depthimage_to_laserscan::DepthImageToLaserScanROS dtl(n, pnh);
-  
-  ros::spin();
+  rclcpp::init(argc, argv);
+
+  rclcpp::node::Node::SharedPtr node = rclcpp::node::Node::make_shared("depthimage_to_laserscan");
+
+  depthimage_to_laserscan::DepthImageToLaserScanROS dtl(node);
+
+  rclcpp::spin(node);
+
+  rclcpp::shutdown();
 
   return 0;
 }
