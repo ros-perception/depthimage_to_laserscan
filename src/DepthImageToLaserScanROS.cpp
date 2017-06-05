@@ -31,61 +31,78 @@
  * Author: Chad Rockey
  */
 
+#include <rclcpp/rclcpp.hpp>
+#include <sensor_msgs/msg/camera_info.hpp>
+#include <sensor_msgs/msg/image.hpp>
+#include <sensor_msgs/msg/laser_scan.hpp>
+
+#include <functional>
+
 #include <depthimage_to_laserscan/DepthImageToLaserScanROS.h>
 
+#define ROS_ERROR printf
+
 using namespace depthimage_to_laserscan;
-  
-DepthImageToLaserScanROS::DepthImageToLaserScanROS(ros::NodeHandle& n, ros::NodeHandle& pnh):pnh_(pnh), it_(n), srv_(pnh) {
-  boost::mutex::scoped_lock lock(connect_mutex_);
-  
-  // Dynamic Reconfigure
-  dynamic_reconfigure::Server<depthimage_to_laserscan::DepthConfig>::CallbackType f;
-  f = boost::bind(&DepthImageToLaserScanROS::reconfigureCb, this, _1, _2);
-  srv_.setCallback(f);
-  
-  // Lazy subscription to depth image topic
-  pub_ = n.advertise<sensor_msgs::LaserScan>("scan", 10, boost::bind(&DepthImageToLaserScanROS::connectCb, this, _1), boost::bind(&DepthImageToLaserScanROS::disconnectCb, this, _1));
+
+DepthImageToLaserScanROS::DepthImageToLaserScanROS(rclcpp::node::Node::SharedPtr & node):node_(node) {
+
+  cam_info_sub_ = node_->create_subscription<sensor_msgs::msg::CameraInfo>("depth_camera_info",
+      std::bind(
+        &DepthImageToLaserScanROS::infoCb, this,
+        std::placeholders::_1),
+      rmw_qos_profile_sensor_data);
+
+  depth_image_sub_ =
+    node_->create_subscription<sensor_msgs::msg::Image>("depth",
+      std::bind(&DepthImageToLaserScanROS::depthCb, this, std::placeholders::_1),
+      rmw_qos_profile_sensor_data);
+
+  scan_pub_ = node_->create_publisher<sensor_msgs::msg::LaserScan>("scan", rmw_qos_profile_sensor_data);
+
+  parameter_service_ = std::make_shared<rclcpp::parameter_service::ParameterService>(node_);
+
+  float scan_time = 0.033;
+  node_->get_parameter("scan_time", scan_time);
+  dtl_.set_scan_time(scan_time);
+
+  float range_min = 0.45;
+  float range_max = 10.0;
+  node_->get_parameter("range_min", range_min);
+  node_->get_parameter("range_max", range_max);
+  dtl_.set_range_limits(range_min, range_max);
+
+  int scan_height = 1;
+  node_->get_parameter("scan_height", scan_height);
+  dtl_.set_scan_height(scan_height);
+
+  std::string output_frame = "camera_depth_frame";
+  node_->get_parameter("output_frame", output_frame);
+  dtl_.set_output_frame(output_frame);
 }
 
-DepthImageToLaserScanROS::~DepthImageToLaserScanROS(){
-  sub_.shutdown();
+DepthImageToLaserScanROS::~DepthImageToLaserScanROS()
+{
 }
 
+void DepthImageToLaserScanROS::infoCb(sensor_msgs::msg::CameraInfo::SharedPtr info)
+{
+  cam_info_ = info;
+}
 
+void DepthImageToLaserScanROS::depthCb(const sensor_msgs::msg::Image::SharedPtr image)
+{
+  if (nullptr == cam_info_) {
+    ROS_ERROR("No camera info, skipping point cloud squash\n");
+    return;
+  }
 
-void DepthImageToLaserScanROS::depthCb(const sensor_msgs::ImageConstPtr& depth_msg,
-	      const sensor_msgs::CameraInfoConstPtr& info_msg){
   try
   {
-    sensor_msgs::LaserScanPtr scan_msg = dtl_.convert_msg(depth_msg, info_msg);
-    pub_.publish(scan_msg);
+    sensor_msgs::msg::LaserScan::SharedPtr scan_msg = dtl_.convert_msg(image, cam_info_);
+    scan_pub_->publish(scan_msg);
   }
   catch (std::runtime_error& e)
   {
-    ROS_ERROR_THROTTLE(1.0, "Could not convert depth image to laserscan: %s", e.what());
+    ROS_ERROR("Could not convert depth image to laserscan: %s\n", e.what());
   }
-}
-
-void DepthImageToLaserScanROS::connectCb(const ros::SingleSubscriberPublisher& pub) {
-  boost::mutex::scoped_lock lock(connect_mutex_);
-  if (!sub_ && pub_.getNumSubscribers() > 0) {
-    ROS_DEBUG("Connecting to depth topic.");
-    image_transport::TransportHints hints("raw", ros::TransportHints(), pnh_);
-    sub_ = it_.subscribeCamera("image", 10, &DepthImageToLaserScanROS::depthCb, this, hints);
-  }
-}
-
-void DepthImageToLaserScanROS::disconnectCb(const ros::SingleSubscriberPublisher& pub) {
-  boost::mutex::scoped_lock lock(connect_mutex_);
-  if (pub_.getNumSubscribers() == 0) {
-    ROS_DEBUG("Unsubscribing from depth topic.");
-    sub_.shutdown();
-  }
-}
-
-void DepthImageToLaserScanROS::reconfigureCb(depthimage_to_laserscan::DepthConfig& config, uint32_t level){
-    dtl_.set_scan_time(config.scan_time);
-    dtl_.set_range_limits(config.range_min, config.range_max);
-    dtl_.set_scan_height(config.scan_height);
-    dtl_.set_output_frame(config.output_frame_id);
 }

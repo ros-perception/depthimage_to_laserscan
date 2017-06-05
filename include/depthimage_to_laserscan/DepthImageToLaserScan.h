@@ -34,14 +34,17 @@
 #ifndef DEPTH_IMAGE_TO_LASERSCAN
 #define DEPTH_IMAGE_TO_LASERSCAN
 
-#include <sensor_msgs/Image.h>
-#include <sensor_msgs/LaserScan.h>
-#include <sensor_msgs/image_encodings.h>
+#include <sensor_msgs/msg/image.hpp>
+#include <sensor_msgs/msg/laser_scan.hpp>
 #include <image_geometry/pinhole_camera_model.h>
 #include <depthimage_to_laserscan/depth_traits.h>
 #include <sstream>
 #include <limits.h>
 #include <math.h>
+
+#include <string>
+#include <opencv2/core/core.hpp>
+#include <sensor_msgs/msg/camera_info.hpp>
 
 namespace depthimage_to_laserscan
 { 
@@ -55,31 +58,31 @@ namespace depthimage_to_laserscan
      * Converts the information in a depth image (sensor_msgs::Image) to a sensor_msgs::LaserScan.
      * 
      * This function converts the information in the depth encoded image (UInt16 or Float32 encoding) into
-     * a sensor_msgs::LaserScan as accurately as possible.  To do this, it requires the synchornized Image/CameraInfo
+     * a sensor_msgs::msg::LaserScan as accurately as possible.  To do this, it requires the synchronized Image/CameraInfo
      * pair associated with the image.
      * 
      * @param depth_msg UInt16 or Float32 encoded depth image.
      * @param info_msg CameraInfo associated with depth_msg
-     * @return sensor_msgs::LaserScanPtr for the center row(s) of the depth image.
+     * @return sensor_msgs::msg::LaserScan::SharedPtr for the center row(s) of the depth image.
      * 
      */
-    sensor_msgs::LaserScanPtr convert_msg(const sensor_msgs::ImageConstPtr& depth_msg,
-					   const sensor_msgs::CameraInfoConstPtr& info_msg);
-    
+    sensor_msgs::msg::LaserScan::SharedPtr convert_msg(const sensor_msgs::msg::Image::ConstSharedPtr& depth_msg,
+                                                       const sensor_msgs::msg::CameraInfo::ConstSharedPtr& info_msg);
+
     /**
      * Sets the scan time parameter.
      * 
-     * This function stores the desired value for scan_time.  In sensor_msgs::LaserScan, scan_time is defined as 
-     * "time between scans [seconds]".  This value is not easily calculated from consquetive messages, and is thus
+     * This function stores the desired value for scan_time.  In sensor_msgs::msg::LaserScan, scan_time is defined as
+     * "time between scans [seconds]".  This value is not easily calculated from consecutive messages, and is thus
      * left to the user to set correctly.
      * 
-     * @param scan_time The value to use for outgoing sensor_msgs::LaserScan.
+     * @param scan_time The value to use for outgoing sensor_msgs::msg::LaserScan.
      * 
      */
     void set_scan_time(const float scan_time);
     
     /**
-     * Sets the minimum and maximum range for the sensor_msgs::LaserScan.
+     * Sets the minimum and maximum range for the sensor_msgs::msg::LaserScan.
      * 
      * range_min is used to determine how close of a value to allow through when multiple radii correspond to the same
      * angular increment.  range_max is used to set the output message.
@@ -108,7 +111,7 @@ namespace depthimage_to_laserscan
      * Output frame_id for the LaserScan.  Will probably NOT be the same frame_id as the depth image.
      * Example: For OpenNI cameras, this should be set to 'camera_depth_frame' while the camera uses 'camera_depth_optical_frame'.
      * 
-     * @param output_frame_id Frame_id to use for the output sensor_msgs::LaserScan.
+     * @param output_frame_id Frame_id to use for the output sensor_msgs::msg::LaserScan.
      * 
      */
     void set_output_frame(const std::string output_frame_id);
@@ -167,23 +170,20 @@ namespace depthimage_to_laserscan
     * 
     */
     template<typename T>
-    void convert(const sensor_msgs::ImageConstPtr& depth_msg, const image_geometry::PinholeCameraModel& cam_model, 
-		 const sensor_msgs::LaserScanPtr& scan_msg, const int& scan_height) const{
+    void convert(const sensor_msgs::msg::Image::ConstSharedPtr& depth_msg, const image_geometry::PinholeCameraModel& cam_model,
+                 const sensor_msgs::msg::LaserScan::SharedPtr& scan_msg, const int& scan_height) const{
       // Use correct principal point from calibration
       float center_x = cam_model.cx();
-      float center_y = cam_model.cy();
 
       // Combine unit conversion (if necessary) with scaling by focal length for computing (X,Y)
       double unit_scaling = depthimage_to_laserscan::DepthTraits<T>::toMeters( T(1) );
       float constant_x = unit_scaling / cam_model.fx();
-      float constant_y = unit_scaling / cam_model.fy();
       
       const T* depth_row = reinterpret_cast<const T*>(&depth_msg->data[0]);
       int row_step = depth_msg->step / sizeof(T);
 
-      int offset = (int)(cam_model.cy()-scan_height/2);
+      int offset = static_cast<int>(cam_model.cy() - scan_height / 2);
       depth_row += offset*row_step; // Offset to center of image
-
       for(int v = offset; v < offset+scan_height_; v++, depth_row += row_step){
 		for (int u = 0; u < (int)depth_msg->width; u++) // Loop over each pixel in row
 		{	
