@@ -220,6 +220,6 @@ namespace depthimage_to_laserscan
   };
   
   
-}; // depthimage_to_laserscan
+} // depthimage_to_laserscan
 
 #endif

@@ -48,7 +48,7 @@ double DepthImageToLaserScan::magnitude_of_ray(const cv::Point3d& ray) const{
 double DepthImageToLaserScan::angle_between_rays(const cv::Point3d& ray1, const cv::Point3d& ray2) const{
   double dot_product = ray1.x*ray2.x + ray1.y*ray2.y + ray1.z*ray2.z;
   double magnitude1 = magnitude_of_ray(ray1);
-  double magnitude2 = magnitude_of_ray(ray2);;
+  double magnitude2 = magnitude_of_ray(ray2);
   return acos(dot_product / (magnitude1 * magnitude2));
 }
 
