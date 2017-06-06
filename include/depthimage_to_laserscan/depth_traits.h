@@ -66,6 +66,6 @@ struct DepthTraits<float>
   }
 };
 
-} // namespace depth_image_proc
+} // namespace depthimage_to_laserscan
 
 #endif
