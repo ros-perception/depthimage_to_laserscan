@@ -49,7 +49,9 @@ namespace depthimage_to_laserscan
   class DepthImageToLaserScanROS
   {
   public:
-    DepthImageToLaserScanROS(ros::NodeHandle& n, ros::NodeHandle& pnh);
+    DepthImageToLaserScanROS(
+      ros::NodeHandle& n,
+      ros::NodeHandle& pnh);
 
     ~DepthImageToLaserScanROS();
 
@@ -63,8 +65,9 @@ namespace depthimage_to_laserscan
      * @param info_msg CameraInfo provided by image_transport.
      *
      */
-    void depthCb(const sensor_msgs::ImageConstPtr& depth_msg,
-                 const sensor_msgs::CameraInfoConstPtr& info_msg);
+    void depthCb(
+      const sensor_msgs::ImageConstPtr& depth_msg,
+      const sensor_msgs::CameraInfoConstPtr& info_msg);
 
     /**
      * Callback that is called when there is a new subscriber.

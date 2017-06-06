@@ -80,8 +80,9 @@ bool DepthImageToLaserScan::use_point(const float new_value, const float old_val
   return shorter_check;
 }
 
-sensor_msgs::LaserScanPtr DepthImageToLaserScan::convert_msg(const sensor_msgs::ImageConstPtr& depth_msg,
-	      const sensor_msgs::CameraInfoConstPtr& info_msg){
+sensor_msgs::LaserScanPtr DepthImageToLaserScan::convert_msg(
+  const sensor_msgs::ImageConstPtr& depth_msg,
+  const sensor_msgs::CameraInfoConstPtr& info_msg){
   // Set camera model
   cam_model_.fromCameraInfo(info_msg);
 

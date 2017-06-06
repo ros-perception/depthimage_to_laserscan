@@ -63,8 +63,9 @@ namespace depthimage_to_laserscan
      * @return sensor_msgs::LaserScanPtr for the center row(s) of the depth image.
      *
      */
-    sensor_msgs::LaserScanPtr convert_msg(const sensor_msgs::ImageConstPtr& depth_msg,
-                                          const sensor_msgs::CameraInfoConstPtr& info_msg);
+    sensor_msgs::LaserScanPtr convert_msg(
+      const sensor_msgs::ImageConstPtr& depth_msg,
+      const sensor_msgs::CameraInfoConstPtr& info_msg);
 
     /**
      * Sets the scan time parameter.
@@ -167,8 +168,11 @@ namespace depthimage_to_laserscan
      *
      */
     template<typename T>
-    void convert(const sensor_msgs::ImageConstPtr& depth_msg, const image_geometry::PinholeCameraModel& cam_model,
-		 const sensor_msgs::LaserScanPtr& scan_msg, const int& scan_height) const{
+    void convert(
+      const sensor_msgs::ImageConstPtr& depth_msg,
+      const image_geometry::PinholeCameraModel& cam_model,
+      const sensor_msgs::LaserScanPtr& scan_msg,
+      const int& scan_height) const{
       // Use correct principal point from calibration
       float center_x = cam_model.cx();
       float center_y = cam_model.cy();
