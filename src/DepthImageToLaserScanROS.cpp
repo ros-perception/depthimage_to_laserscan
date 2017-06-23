@@ -57,7 +57,7 @@ DepthImageToLaserScanROS::DepthImageToLaserScanROS(rclcpp::node::Node::SharedPtr
       std::bind(&DepthImageToLaserScanROS::depthCb, this, std::placeholders::_1),
       rmw_qos_profile_sensor_data);
 
-  scan_pub_ = node_->create_publisher<sensor_msgs::msg::LaserScan>("scan", rmw_qos_profile_sensor_data);
+  scan_pub_ = node_->create_publisher<sensor_msgs::msg::LaserScan>("scan");
 
   parameter_service_ = std::make_shared<rclcpp::parameter_service::ParameterService>(node_);
 
