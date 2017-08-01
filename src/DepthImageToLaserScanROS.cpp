@@ -42,9 +42,6 @@ DepthImageToLaserScanROS::DepthImageToLaserScanROS(ros::NodeHandle& n, ros::Node
   dynamic_reconfigure::Server<depthimage_to_laserscan::DepthConfig>::CallbackType f;
   f = boost::bind(&DepthImageToLaserScanROS::reconfigureCb, this, _1, _2);
   srv_.setCallback(f);
- 
-  // Subscribe the camera info once and store it
-  camera_info_  = ros::topic::waitForMessage<sensor_msgs::CameraInfo>("camera_info", n);
 
   // Lazy subscription to depth image topic
   pub_ = n.advertise<sensor_msgs::LaserScan>("scan", 10, boost::bind(&DepthImageToLaserScanROS::connectCb, this, _1), boost::bind(&DepthImageToLaserScanROS::disconnectCb, this, _1));
@@ -60,8 +57,12 @@ void DepthImageToLaserScanROS::depthCb(const sensor_msgs::ImageConstPtr& depth_m
     // if camera_info hasn't received, fetch the camera_info again
     if(camera_info_ == NULL)
     {
-      ROS_ERROR("depthimage_to_laserscan node hasn't received camera_info. Will keep trying");
-      return ;
+			camera_info_ = ros::topic::waitForMessage<sensor_msgs::CameraInfo>("camera_info", ros::Duration(0.1));
+
+			if(camera_info_ == NULL) {
+				ROS_ERROR_ONCE("depthimage_to_laserscan node hasn't received camera_info. Will keep trying");
+				return;
+			}
     }
 
     tf::StampedTransform depthOpticalTransform;
