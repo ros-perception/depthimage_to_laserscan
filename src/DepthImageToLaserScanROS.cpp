@@ -51,20 +51,10 @@ DepthImageToLaserScanROS::~DepthImageToLaserScanROS(){
   sub_.shutdown();
 }
 
-void DepthImageToLaserScanROS::depthCb(const sensor_msgs::ImageConstPtr& depth_msg){
+void DepthImageToLaserScanROS::depthCb(const sensor_msgs::ImageConstPtr& depth_msg,
+	const sensor_msgs::CameraInfoConstPtr& info_msg) {
   try
   {
-    // if camera_info hasn't received, fetch the camera_info again
-    if(camera_info_ == NULL)
-    {
-			camera_info_ = ros::topic::waitForMessage<sensor_msgs::CameraInfo>("camera_info", ros::Duration(0.1));
-
-			if(camera_info_ == NULL) {
-				ROS_ERROR_ONCE("depthimage_to_laserscan node hasn't received camera_info. Will keep trying");
-				return;
-			}
-    }
-
     tf::StampedTransform depthOpticalTransform;
 
     // listen to transform only once to avoid overhead
@@ -102,7 +92,7 @@ void DepthImageToLaserScanROS::depthCb(const sensor_msgs::ImageConstPtr& depth_m
       }
     }
 
-    sensor_msgs::LaserScanPtr scan_msg = dtl_.convert_msg(depth_msg, camera_info_, depthOpticalTransform);
+    sensor_msgs::LaserScanPtr scan_msg = dtl_.convert_msg(depth_msg, info_msg, depthOpticalTransform);
     pub_.publish(scan_msg);
     lastImageReceivedTime_ = depth_msg->header.stamp;
   }
@@ -117,7 +107,7 @@ void DepthImageToLaserScanROS::connectCb(const ros::SingleSubscriberPublisher& p
   if (!sub_ && pub_.getNumSubscribers() > 0) {
     ROS_DEBUG("Connecting to depth topic.");
     image_transport::TransportHints hints("raw", ros::TransportHints(), pnh_);
-    sub_ = it_.subscribe("image", 1, &DepthImageToLaserScanROS::depthCb, this, hints);
+    sub_ = it_.subscribeCamera("image", 1, &DepthImageToLaserScanROS::depthCb, this, hints);
   }
 }
 
