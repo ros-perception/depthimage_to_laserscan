@@ -37,6 +37,7 @@
 #include <ros/ros.h>
 #include <image_transport/image_transport.h>
 #include <sensor_msgs/Image.h>
+#include <sensor_msgs/CameraInfo.h>
 #include <sensor_msgs/LaserScan.h>
 #include <boost/thread/mutex.hpp>
 #include <dynamic_reconfigure/server.h>
@@ -57,14 +58,12 @@ namespace depthimage_to_laserscan
     /**
      * Callback for image_transport
      * 
-     * Synchronized callback for depth image and camera info.  Publishes laserscan at the end of this callback.
+     * Callback for depth image.  Publishes laserscan at the end of this callback.
      * 
      * @param depth_msg Image provided by image_transport.
-     * @param info_msg CameraInfo provided by image_transport.
      * 
      */
-    void depthCb(const sensor_msgs::ImageConstPtr& depth_msg,
-		  const sensor_msgs::CameraInfoConstPtr& info_msg);
+    void depthCb(const sensor_msgs::ImageConstPtr& depth_msg);
 
     /**
      * Callback that is called when there is a new subscriber.
@@ -95,12 +94,21 @@ namespace depthimage_to_laserscan
     
     ros::NodeHandle pnh_; ///< Private nodehandle used to generate the transport hints in the connectCb.
     image_transport::ImageTransport it_; ///< Subscribes to synchronized Image CameraInfo pairs.
-    image_transport::CameraSubscriber sub_; ///< Subscriber for image_transport
+    image_transport::Subscriber sub_; ///< Subscriber for image_transport
     ros::Publisher pub_; ///< Publisher for output LaserScan messages
     dynamic_reconfigure::Server<depthimage_to_laserscan::DepthConfig> srv_; ///< Dynamic reconfigure server
-    
+
+    sensor_msgs::CameraInfoConstPtr camera_info_; ///< CameraInfo message
+
     depthimage_to_laserscan::DepthImageToLaserScan dtl_; ///< Instance of the DepthImageToLaserScan conversion class.
-    
+
+    ros::Time firstOpticalFrameTime_; ///< The time of the first received scan
+    tf::TransformListener listener_; ///< TF listener for retrieving transform between frames.
+
+    const static uint8_t EXPECTED_IMAGE_FREQUENCY = 30;
+    const static float MAX_ALLOWED_IMAGE_DELAY = 0.01; // 10 ms
+    ros::Time lastImageReceivedTime_; ///< The time of last received image message
+
     boost::mutex connect_mutex_; ///< Prevents the connectCb and disconnectCb from being called until everything is initialized.
   };
   

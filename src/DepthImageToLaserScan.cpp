@@ -81,7 +81,7 @@ bool DepthImageToLaserScan::use_point(const float new_value, const float old_val
 }
 
 sensor_msgs::LaserScanPtr DepthImageToLaserScan::convert_msg(const sensor_msgs::ImageConstPtr& depth_msg,
-	      const sensor_msgs::CameraInfoConstPtr& info_msg){
+    const sensor_msgs::CameraInfoConstPtr& info_msg, const tf::StampedTransform& depthOpticalTransform){
   // Set camera model
   cam_model_.fromCameraInfo(info_msg);
   
@@ -128,11 +128,11 @@ sensor_msgs::LaserScanPtr DepthImageToLaserScan::convert_msg(const sensor_msgs::
   
   if (depth_msg->encoding == sensor_msgs::image_encodings::TYPE_16UC1)
   {
-    convert<uint16_t>(depth_msg, cam_model_, scan_msg, scan_height_);
+    convert<uint16_t>(depth_msg, cam_model_, scan_msg, scan_height_, depthOpticalTransform);
   }
   else if (depth_msg->encoding == sensor_msgs::image_encodings::TYPE_32FC1)
   {
-    convert<float>(depth_msg, cam_model_, scan_msg, scan_height_);
+    convert<float>(depth_msg, cam_model_, scan_msg, scan_height_, depthOpticalTransform);
   }
   else
   {
@@ -159,4 +159,9 @@ void DepthImageToLaserScan::set_scan_height(const int scan_height){
 
 void DepthImageToLaserScan::set_output_frame(const std::string output_frame_id){
   output_frame_id_ = output_frame_id;
+}
+
+void DepthImageToLaserScan::set_height_limits(const float height_min, const float height_max){
+  height_min_ = height_min;
+  height_max_ = height_max;
 }
