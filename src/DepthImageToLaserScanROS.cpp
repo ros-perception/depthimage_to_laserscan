@@ -73,7 +73,7 @@ void DepthImageToLaserScanROS::depthCb(const sensor_msgs::ImageConstPtr& depth_m
 
         if (!firstOpticalFrameTime_.isValid())
         {
-            firstOpticalFrameTime_ == ros::Time::now();
+            firstOpticalFrameTime_ = ros::Time::now();
         }
         else if ((ros::Time::now() - firstOpticalFrameTime_) > opticalFrameTimeout)
         {
