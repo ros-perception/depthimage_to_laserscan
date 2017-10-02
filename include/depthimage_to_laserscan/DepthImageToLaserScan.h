@@ -168,7 +168,8 @@ namespace depthimage_to_laserscan
 
 
       // Polynomial approximating arctangenet on the range -1,1.
-// Max error < 0.005 (or 0.29 degrees)
+      // Max error < 0.005 (or 0.29 degrees)
+      // Implementation from: https://www.dsprelated.com/showarticle/1052.php
       double ApproxAtan(double z) const
       {
         const float n1 = 0.97239411f;
