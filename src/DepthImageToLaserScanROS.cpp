@@ -32,6 +32,7 @@
  */
 
 #include <rclcpp/rclcpp.hpp>
+#include <rcutils/logging_macros.h>
 #include <sensor_msgs/msg/camera_info.hpp>
 #include <sensor_msgs/msg/image.hpp>
 #include <sensor_msgs/msg/laser_scan.hpp>
@@ -40,7 +41,8 @@
 
 #include <depthimage_to_laserscan/DepthImageToLaserScanROS.h>
 
-#define ROS_ERROR printf
+#define ROS_ERROR RCUTILS_LOG_ERROR
+#define ROS_ERROR_THROTTLE(sec, ...) RCUTILS_LOG_ERROR_THROTTLE(RCUTILS_STEADY_TIME, sec, __VA_ARGS__)
 
 using namespace depthimage_to_laserscan;
 
@@ -92,7 +94,7 @@ void DepthImageToLaserScanROS::infoCb(sensor_msgs::msg::CameraInfo::SharedPtr in
 void DepthImageToLaserScanROS::depthCb(const sensor_msgs::msg::Image::SharedPtr image)
 {
   if (nullptr == cam_info_) {
-    ROS_ERROR("No camera info, skipping point cloud squash\n");
+    ROS_ERROR("No camera info, skipping point cloud squash");
     return;
   }
 
@@ -103,6 +105,6 @@ void DepthImageToLaserScanROS::depthCb(const sensor_msgs::msg::Image::SharedPtr 
   }
   catch (std::runtime_error& e)
   {
-    ROS_ERROR("Could not convert depth image to laserscan: %s\n", e.what());
+    ROS_ERROR_THROTTLE(1.0, "Could not convert depth image to laserscan: %s", e.what());
   }
 }
