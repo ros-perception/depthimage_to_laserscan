@@ -46,7 +46,7 @@ namespace depthimage_to_laserscan
   class DepthImageToLaserScanROS
   {
   public:
-    explicit DepthImageToLaserScanROS(rclcpp::node::Node::SharedPtr & node);
+    explicit DepthImageToLaserScanROS(rclcpp::Node::SharedPtr & node);
     
     ~DepthImageToLaserScanROS();
 
@@ -63,15 +63,15 @@ namespace depthimage_to_laserscan
 
     void infoCb(sensor_msgs::msg::CameraInfo::SharedPtr info);
 
-    rclcpp::node::Node::SharedPtr node_;
+    rclcpp::Node::SharedPtr node_;
     sensor_msgs::msg::CameraInfo::SharedPtr cam_info_;
 
-    rclcpp::subscription::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr cam_info_sub_;
-    rclcpp::subscription::Subscription<sensor_msgs::msg::Image>::SharedPtr depth_image_sub_;
+    rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr cam_info_sub_;
+    rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr depth_image_sub_;
 
-    rclcpp::publisher::Publisher<sensor_msgs::msg::LaserScan>::SharedPtr scan_pub_;
+    rclcpp::Publisher<sensor_msgs::msg::LaserScan>::SharedPtr scan_pub_;
 
-    rclcpp::parameter_service::ParameterService::SharedPtr parameter_service_;
+    rclcpp::ParameterService::SharedPtr parameter_service_;
 
     depthimage_to_laserscan::DepthImageToLaserScan dtl_; ///< Instance of the DepthImageToLaserScan conversion class.
   };

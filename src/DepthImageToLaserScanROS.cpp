@@ -46,7 +46,7 @@
 
 using namespace depthimage_to_laserscan;
 
-DepthImageToLaserScanROS::DepthImageToLaserScanROS(rclcpp::node::Node::SharedPtr & node):node_(node) {
+DepthImageToLaserScanROS::DepthImageToLaserScanROS(rclcpp::Node::SharedPtr & node):node_(node) {
 
   cam_info_sub_ = node_->create_subscription<sensor_msgs::msg::CameraInfo>("depth_camera_info",
       std::bind(
@@ -61,7 +61,7 @@ DepthImageToLaserScanROS::DepthImageToLaserScanROS(rclcpp::node::Node::SharedPtr
 
   scan_pub_ = node_->create_publisher<sensor_msgs::msg::LaserScan>("scan");
 
-  parameter_service_ = std::make_shared<rclcpp::parameter_service::ParameterService>(node_);
+  parameter_service_ = std::make_shared<rclcpp::ParameterService>(node_);
 
   float scan_time = 0.033;
   node_->get_parameter("scan_time", scan_time);
