@@ -61,6 +61,8 @@ TEST(ConvertTest, setupLibrary)
   dtl_.set_range_limits(range_min, range_max);
   const int scan_height = 1;
   dtl_.set_scan_height(scan_height);
+  const float scan_offset = 0.5;
+  dtl_.set_scan_offset(scan_offset);
   const std::string output_frame = "camera_depth_frame";
   dtl_.set_output_frame(output_frame);
   
