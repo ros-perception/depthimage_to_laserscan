@@ -61,8 +61,6 @@ DepthImageToLaserScanROS::DepthImageToLaserScanROS(rclcpp::Node::SharedPtr & nod
 
   scan_pub_ = node_->create_publisher<sensor_msgs::msg::LaserScan>("scan");
 
-  parameter_service_ = std::make_shared<rclcpp::ParameterService>(node_);
-
   float scan_time = 0.033;
   node_->get_parameter("scan_time", scan_time);
   dtl_.set_scan_time(scan_time);

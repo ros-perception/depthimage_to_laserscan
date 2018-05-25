@@ -71,8 +71,6 @@ namespace depthimage_to_laserscan
 
     rclcpp::Publisher<sensor_msgs::msg::LaserScan>::SharedPtr scan_pub_;
 
-    rclcpp::ParameterService::SharedPtr parameter_service_;
-
     depthimage_to_laserscan::DepthImageToLaserScan dtl_; ///< Instance of the DepthImageToLaserScan conversion class.
   };
   
