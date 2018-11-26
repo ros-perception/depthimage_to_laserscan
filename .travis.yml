@@ -1,0 +1,32 @@
+# This config file for Travis CI utilizes ros-industrial/industrial_ci package.
+# For more info for the package, see https://github.com/ros-industrial/industrial_ci/blob/master/README.rst
+sudo: required 
+dist: trusty 
+language: generic 
+compiler:
+  - gcc
+notifications:
+  email:
+    on_failure: always
+    recipients:
+      - gm130s@gmail.com  # Change this to yours should you copy this file.
+env:
+  matrix:
+    - UPSTREAM_WORKSPACE=debian  ROS_DISTRO="indigo" ROS_REPOSITORY_PATH=http://packages.ros.org/ros/ubuntu
+    - UPSTREAM_WORKSPACE=debian  ROS_DISTRO="indigo" ROS_REPOSITORY_PATH=http://packages.ros.org/ros-shadow-fixed/ubuntu
+    - ROS_DISTRO="indigo" PRERELEASE=true
+    - UPSTREAM_WORKSPACE=debian  ROS_DISTRO="kinetic" ROS_REPOSITORY_PATH=http://packages.ros.org/ros/ubuntu
+    - UPSTREAM_WORKSPACE=debian  ROS_DISTRO="kinetic" ROS_REPOSITORY_PATH=http://packages.ros.org/ros-shadow-fixed/ubuntu
+    - ROS_DISTRO="kinetic" PRERELEASE=true
+    - UPSTREAM_WORKSPACE=debian  ROS_DISTRO="melodic" ROS_REPOSITORY_PATH=http://packages.ros.org/ros/ubuntu
+    - UPSTREAM_WORKSPACE=debian  ROS_DISTRO="melodic" ROS_REPOSITORY_PATH=http://packages.ros.org/ros-shadow-fixed/ubuntu
+    - ROS_DISTRO="melodic" PRERELEASE=true
+matrix:
+  allow_failures:
+    - env: ROS_DISTRO="indigo" PRERELEASE=true
+    - env: ROS_DISTRO="kinetic" PRERELEASE=true
+    - env: ROS_DISTRO="melodic" PRERELEASE=true
+before_script:
+  - git clone https://github.com/ros-industrial/industrial_ci.git .ci
+script:
+  - .ci/ci.sh
