@@ -4,7 +4,7 @@
   <version>2.1.0</version>
   <description>depthimage_to_laserscan</description>
   <author>Chad Rockey</author>
-  <maintainer email="clalancette@osrfoundation.org">Chris Lalancette</maintainer>
+  <maintainer email="clalancette@openrobotics.org">Chris Lalancette</maintainer>
   <license>BSD</license>
 
   <url type="website">http://ros.org/wiki/depthimage_to_laserscan</url>
