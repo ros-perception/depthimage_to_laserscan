@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package format="2">
   <name>depthimage_to_laserscan</name>
-  <version>2.1.0</version>
+  <version>2.2.0</version>
   <description>depthimage_to_laserscan</description>
   <author>Chad Rockey</author>
   <maintainer email="clalancette@openrobotics.org">Chris Lalancette</maintainer>
