@@ -2,6 +2,13 @@
 Changelog for package depthimage_to_laserscan
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Merge pull request `#27 <https://github.com/ros-perception/depthimage_to_laserscan/issues/27>`_ from ros-perception/mikaelarguedas-patch-1
+  update to use non deprecated pluginlib macro
+* update to use non deprecated pluginlib macro
+* Contributors: Chad Rockey, Mikael Arguedas
+
 1.0.7 (2014-06-16)
 ------------------
 * Merge pull request `#11 <https://github.com/ros-perception/depthimage_to_laserscan/issues/11>`_ from ros-perception/hydro-devel
