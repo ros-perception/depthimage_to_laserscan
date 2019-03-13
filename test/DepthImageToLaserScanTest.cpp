@@ -43,12 +43,14 @@
 #include <stdlib.h>
 #include <time.h>
 
+#include <sensor_msgs/image_encodings.hpp>
+
 // Library object
 depthimage_to_laserscan::DepthImageToLaserScan dtl_;
 
 // Inputs
-sensor_msgs::ImagePtr depth_msg_;
-sensor_msgs::CameraInfoPtr info_msg_;
+sensor_msgs::msg::Image::SharedPtr depth_msg_;
+sensor_msgs::msg::CameraInfo::SharedPtr info_msg_;
 
 // Check if the setters work properly and initialize member variables
 TEST(ConvertTest, setupLibrary)
@@ -64,9 +66,9 @@ TEST(ConvertTest, setupLibrary)
   const std::string output_frame = "camera_depth_frame";
   dtl_.set_output_frame(output_frame);
   
-  depth_msg_.reset(new sensor_msgs::Image);
-  depth_msg_->header.seq = 42;
-  depth_msg_->header.stamp.fromNSec(1234567890);
+  depth_msg_.reset(new sensor_msgs::msg::Image);
+  depth_msg_->header.stamp.sec = 0;
+  depth_msg_->header.stamp.nanosec = 0;
   depth_msg_->header.frame_id = "frame";
   depth_msg_->height = 480;
   depth_msg_->width = 640;
@@ -76,27 +78,51 @@ TEST(ConvertTest, setupLibrary)
   uint16_t value = 0x0F;
   depth_msg_->data.assign(depth_msg_->height*depth_msg_->step, value); // Sets all values to 3.855m
   
-  info_msg_.reset(new sensor_msgs::CameraInfo);
+  info_msg_.reset(new sensor_msgs::msg::CameraInfo);
   info_msg_->header = depth_msg_->header;
   info_msg_->height = depth_msg_->height;
   info_msg_->width = depth_msg_->width;
   info_msg_->distortion_model = "plumb_bob";
-  info_msg_->D.resize(5); // All 0, no distortion
-  info_msg_->K[0] = 570.3422241210938;
-  info_msg_->K[2] = 314.5;
-  info_msg_->K[4] = 570.3422241210938;
-  info_msg_->K[5] = 235.5;
-  info_msg_->K[8] = 1.0;
-  info_msg_->R[0] = 1.0;
-  info_msg_->R[4] = 1.0;
-  info_msg_->R[8] = 1.0;
-  info_msg_->P[0] = 570.3422241210938;
-  info_msg_->P[2] = 314.5;
-  info_msg_->P[5] = 570.3422241210938;
-  info_msg_->P[6] = 235.5;
-  info_msg_->P[10] = 1.0;
-  
-  sensor_msgs::LaserScanPtr scan_msg = dtl_.convert_msg(depth_msg_, info_msg_);
+  info_msg_->binning_x = 0;
+  info_msg_->binning_y = 0;
+  info_msg_->roi.x_offset = 0;
+  info_msg_->roi.y_offset = 0;
+  info_msg_->roi.height = 0;
+  info_msg_->roi.width = 0;
+  info_msg_->roi.do_rectify = 0;
+  info_msg_->d.resize(5); // All 0, no distortion
+  info_msg_->k[0] = 570.3422241210938;
+  info_msg_->k[1] = 0.0;
+  info_msg_->k[2] = 314.5;
+  info_msg_->k[3] = 0.0;
+  info_msg_->k[4] = 570.3422241210938;
+  info_msg_->k[5] = 235.5;
+  info_msg_->k[6] = 0.0;
+  info_msg_->k[7] = 0.0;
+  info_msg_->k[8] = 1.0;
+  info_msg_->r[0] = 1.0;
+  info_msg_->r[1] = 0.0;
+  info_msg_->r[2] = 0.0;
+  info_msg_->r[3] = 0.0;
+  info_msg_->r[4] = 1.0;
+  info_msg_->r[5] = 0.0;
+  info_msg_->r[6] = 0.0;
+  info_msg_->r[7] = 0.0;
+  info_msg_->r[8] = 1.0;
+  info_msg_->p[0] = 570.3422241210938;
+  info_msg_->p[1] = 0.0;
+  info_msg_->p[2] = 314.5;
+  info_msg_->p[3] = 0.0;
+  info_msg_->p[4] = 0.0;
+  info_msg_->p[5] = 570.3422241210938;
+  info_msg_->p[6] = 235.5;
+  info_msg_->p[7] = 0.0;
+  info_msg_->p[8] = 0.0;
+  info_msg_->p[9] = 0.0;
+  info_msg_->p[10] = 1.0;
+  info_msg_->p[11] = 0.0;
+
+  sensor_msgs::msg::LaserScan::SharedPtr scan_msg = dtl_.convert_msg(depth_msg_, info_msg_);
   
   // Test set variables
   EXPECT_EQ(scan_msg->scan_time, scan_time);
@@ -132,7 +158,7 @@ TEST(ConvertTest, testScanHeight)
 
     dtl_.set_scan_height(scan_height);
 
-    int offset = (int)(info_msg_->K[5]-scan_height/2);
+    int offset = (int)(info_msg_->k[5]-scan_height/2);
     data += offset*row_step; // Offset to center of image
 
     for(int v = 0; v < scan_height; v++, data += row_step){
@@ -147,7 +173,7 @@ TEST(ConvertTest, testScanHeight)
     }
 
     // Convert
-    sensor_msgs::LaserScanPtr scan_msg = dtl_.convert_msg(depth_msg_, info_msg_);
+    sensor_msgs::msg::LaserScan::SharedPtr scan_msg = dtl_.convert_msg(depth_msg_, info_msg_);
 
     // Test for minimum
     float high_float_thresh = (float)high_value * 1.0f/1000.0f * 0.9f; // 0.9f represents 10 percent margin on range
@@ -177,7 +203,7 @@ TEST(ConvertTest, testRandom)
   }
   
   // Convert
-  sensor_msgs::LaserScanPtr scan_msg = dtl_.convert_msg(depth_msg_, info_msg_);
+  sensor_msgs::msg::LaserScan::SharedPtr scan_msg = dtl_.convert_msg(depth_msg_, info_msg_);
   
   // Make sure all values are greater than or equal to range_min and less than or equal to range_max
   for(size_t i = 0; i < scan_msg->ranges.size(); i++){
@@ -192,7 +218,7 @@ TEST(ConvertTest, testRandom)
 TEST(ConvertTest, testNaN)
 {
   // Use a floating point image
-  sensor_msgs::ImagePtr float_msg(new sensor_msgs::Image(*depth_msg_));
+  sensor_msgs::msg::Image::SharedPtr float_msg(new sensor_msgs::msg::Image(*depth_msg_));
   float_msg->encoding = sensor_msgs::image_encodings::TYPE_32FC1;
   float_msg->step = float_msg->width*4; // 4 bytes per pixel
   float_msg->data.resize(float_msg->step * float_msg->height);
@@ -203,7 +229,7 @@ TEST(ConvertTest, testNaN)
   }
   
   // Convert
-  sensor_msgs::LaserScanPtr scan_msg = dtl_.convert_msg(float_msg, info_msg_);
+  sensor_msgs::msg::LaserScan::SharedPtr scan_msg = dtl_.convert_msg(float_msg, info_msg_);
   
   // Make sure all values are NaN
   for(size_t i = 0; i < scan_msg->ranges.size(); i++){
@@ -217,7 +243,7 @@ TEST(ConvertTest, testNaN)
 TEST(ConvertTest, testPositiveInf)
 {
   // Use a floating point image
-  sensor_msgs::ImagePtr float_msg(new sensor_msgs::Image(*depth_msg_));
+  sensor_msgs::msg::Image::SharedPtr float_msg(new sensor_msgs::msg::Image(*depth_msg_));
   float_msg->encoding = sensor_msgs::image_encodings::TYPE_32FC1;
   float_msg->step = float_msg->width*4; // 4 bytes per pixel
   float_msg->data.resize(float_msg->step * float_msg->height);
@@ -228,14 +254,14 @@ TEST(ConvertTest, testPositiveInf)
   }
   
   // Convert
-  sensor_msgs::LaserScanPtr scan_msg = dtl_.convert_msg(float_msg, info_msg_);
+  sensor_msgs::msg::LaserScan::SharedPtr scan_msg = dtl_.convert_msg(float_msg, info_msg_);
   
   // Make sure most (> 80%) values are Inf
   size_t nan_count = 0;
   for(size_t i = 0; i < scan_msg->ranges.size(); i++){
     if(std::isfinite(scan_msg->ranges[i])){ // NaNs are acceptable.
       ADD_FAILURE() << "Non-finite value produced from postive infniity test.";
-    } else if(isnan(scan_msg->ranges[i])){
+    } else if(std::isnan(scan_msg->ranges[i])){
       nan_count++;
     } else if(scan_msg->ranges[i] < 0){
       ADD_FAILURE() << "Negative value produced from postive infinity test.";
@@ -249,7 +275,7 @@ TEST(ConvertTest, testPositiveInf)
 TEST(ConvertTest, testNegativeInf)
 {
   // Use a floating point image
-  sensor_msgs::ImagePtr float_msg(new sensor_msgs::Image(*depth_msg_));
+  sensor_msgs::msg::Image::SharedPtr float_msg(new sensor_msgs::msg::Image(*depth_msg_));
   float_msg->encoding = sensor_msgs::image_encodings::TYPE_32FC1;
   float_msg->step = float_msg->width*4; // 4 bytes per pixel
   float_msg->data.resize(float_msg->step * float_msg->height);
@@ -260,14 +286,14 @@ TEST(ConvertTest, testNegativeInf)
   }
   
   // Convert
-  sensor_msgs::LaserScanPtr scan_msg = dtl_.convert_msg(float_msg, info_msg_);
+  sensor_msgs::msg::LaserScan::SharedPtr scan_msg = dtl_.convert_msg(float_msg, info_msg_);
   
   // Make sure most (> 80%) values are Inf
   size_t nan_count = 0;
   for(size_t i = 0; i < scan_msg->ranges.size(); i++){
     if(std::isfinite(scan_msg->ranges[i])){ // NaNs are acceptable.
       ADD_FAILURE() << "Non-finite value produced from postive infniity test.";
-    } else if(isnan(scan_msg->ranges[i])){
+    } else if(std::isnan(scan_msg->ranges[i])){
       nan_count++;
     } else if(scan_msg->ranges[i] > 0){
       ADD_FAILURE() << "Postive value produced from negative infinity test.";
