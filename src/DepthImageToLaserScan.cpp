@@ -33,6 +33,16 @@
 
 #include <depthimage_to_laserscan/DepthImageToLaserScan.h>
 
+#include <opencv2/core/core.hpp>
+#include <sensor_msgs/image_encodings.hpp>
+#include <sensor_msgs/msg/camera_info.hpp>
+#include <sensor_msgs/msg/image.hpp>
+#include <sensor_msgs/msg/laser_scan.hpp>
+
+#include <limits>
+#include <memory>
+#include <string>
+
 using namespace depthimage_to_laserscan;
   
 DepthImageToLaserScan::DepthImageToLaserScan(){
@@ -48,18 +58,18 @@ double DepthImageToLaserScan::magnitude_of_ray(const cv::Point3d& ray) const{
 double DepthImageToLaserScan::angle_between_rays(const cv::Point3d& ray1, const cv::Point3d& ray2) const{
   double dot_product = ray1.x*ray2.x + ray1.y*ray2.y + ray1.z*ray2.z;
   double magnitude1 = magnitude_of_ray(ray1);
-  double magnitude2 = magnitude_of_ray(ray2);;
+  double magnitude2 = magnitude_of_ray(ray2);
   return acos(dot_product / (magnitude1 * magnitude2));
 }
 
-bool DepthImageToLaserScan::use_point(const float new_value, const float old_value, const float range_min, const float range_max) const{  
+bool DepthImageToLaserScan::use_point(const float new_value, const float old_value, const float range_min, const float range_max) const{
   // Check for NaNs and Infs, a real number within our limits is more desirable than these.
   bool new_finite = std::isfinite(new_value);
   bool old_finite = std::isfinite(old_value);
   
   // Infs are preferable over NaNs (more information)
   if(!new_finite && !old_finite){ // Both are not NaN or Inf.
-    if(!isnan(new_value)){ // new is not NaN, so use it's +-Inf value.
+    if(!std::isnan(new_value)){ // new is not NaN, so use it's +-Inf value.
       return true;
     }
     return false; // Do not replace old_value
@@ -80,8 +90,8 @@ bool DepthImageToLaserScan::use_point(const float new_value, const float old_val
   return shorter_check;
 }
 
-sensor_msgs::LaserScanPtr DepthImageToLaserScan::convert_msg(const sensor_msgs::ImageConstPtr& depth_msg,
-	      const sensor_msgs::CameraInfoConstPtr& info_msg){
+sensor_msgs::msg::LaserScan::SharedPtr DepthImageToLaserScan::convert_msg(const sensor_msgs::msg::Image::ConstSharedPtr& depth_msg,
+             const sensor_msgs::msg::CameraInfo::ConstSharedPtr& info_msg){
   // Set camera model
   cam_model_.fromCameraInfo(info_msg);
   
@@ -102,7 +112,7 @@ sensor_msgs::LaserScanPtr DepthImageToLaserScan::convert_msg(const sensor_msgs::
   double angle_min = -angle_between_rays(center_ray, right_ray); // Negative because the laserscan message expects an opposite rotation of that from the depth image
   
   // Fill in laserscan message
-  sensor_msgs::LaserScanPtr scan_msg(new sensor_msgs::LaserScan());
+  sensor_msgs::msg::LaserScan::SharedPtr scan_msg = std::make_shared<sensor_msgs::msg::LaserScan>();
   scan_msg->header = depth_msg->header;
   if(output_frame_id_.length() > 0){
     scan_msg->header.frame_id = output_frame_id_;

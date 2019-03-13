@@ -36,6 +36,7 @@
 
 #include <algorithm>
 #include <limits>
+#include <vector>
 
 namespace depthimage_to_laserscan {
 
@@ -48,7 +49,7 @@ struct DepthTraits<uint16_t>
   static inline bool valid(uint16_t depth) { return depth != 0; }
   static inline float toMeters(uint16_t depth) { return depth * 0.001f; } // originally mm
   static inline uint16_t fromMeters(float depth) { return (depth * 1000.0f) + 0.5f; }
-  static inline void initializeBuffer(std::vector<uint8_t>& buffer) {} // Do nothing - already zero-filled
+  static inline void initializeBuffer(std::vector<uint8_t>&) {} // Already zero-filled
 };
 
 template<>
@@ -65,7 +66,6 @@ struct DepthTraits<float>
     std::fill(start, end, std::numeric_limits<float>::quiet_NaN());
   }
 };
-
-} // namespace depth_image_proc
+} // namespace depthimage_to_laserscan
 
 #endif
