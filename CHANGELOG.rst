@@ -2,6 +2,12 @@
 Changelog for package depthimage_to_laserscan
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Port depthimage_to_laserscan to ROS2.
+* Import ROS2 changes from https://github.com/ros2/depthimage_to_laserscan.git to upstream
+* Contributors: Chad Rockey, Chris Lalancette, Mikael Arguedas, Shane Loretz, dhood
+
 1.0.8 (2019-02-07)
 ------------------
 * Merge pull request `#27 <https://github.com/ros-perception/depthimage_to_laserscan/issues/27>`_ from ros-perception/mikaelarguedas-patch-1
