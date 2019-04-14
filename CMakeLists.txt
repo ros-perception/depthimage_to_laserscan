@@ -16,6 +16,7 @@ include_directories(include)
 add_library(DepthImageToLaserScan
   src/DepthImageToLaserScan.cpp
 )
+set_target_properties(DepthImageToLaserScan PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
 ament_target_dependencies(DepthImageToLaserScan
   "image_geometry"
   "OpenCV"
@@ -25,6 +26,7 @@ ament_target_dependencies(DepthImageToLaserScan
 add_library(DepthImageToLaserScanROS
   src/DepthImageToLaserScanROS.cpp
 )
+set_target_properties(DepthImageToLaserScanROS PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
 ament_target_dependencies(DepthImageToLaserScanROS
   "rclcpp"
 )
