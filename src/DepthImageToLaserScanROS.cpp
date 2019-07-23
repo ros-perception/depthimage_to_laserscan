@@ -65,8 +65,8 @@ DepthImageToLaserScanROS::DepthImageToLaserScanROS(rclcpp::Node::SharedPtr & nod
   node_->get_parameter("scan_time", scan_time);
   dtl_.set_scan_time(scan_time);
 
-  float range_min = 0.45;
-  float range_max = 10.0;
+  float range_min = 0.2;
+  float range_max = 4.0;
   node_->get_parameter("range_min", range_min);
   node_->get_parameter("range_max", range_max);
   dtl_.set_range_limits(range_min, range_max);
@@ -75,9 +75,55 @@ DepthImageToLaserScanROS::DepthImageToLaserScanROS(rclcpp::Node::SharedPtr & nod
   node_->get_parameter("scan_height", scan_height);
   dtl_.set_scan_height(scan_height);
 
-  std::string output_frame = "camera_depth_frame";
+  std::string output_frame = "base_link";
   node_->get_parameter("output_frame", output_frame);
   dtl_.set_output_frame(output_frame);
+
+  std::string depth_optical_frame = "camera_depth_optical_frame";
+  node_->get_parameter("depth_optical_frame", depth_optical_frame);
+  dtl_.set_depth_optical_frame(depth_optical_frame);
+
+
+  std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
+  std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
+  tf_buffer_ = std::make_shared<tf2_ros::Buffer>(node_->get_clock());
+  tf_buffer_->setUsingDedicatedThread(true);
+  tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
+
+  RCLCPP_INFO(node_->get_logger(), "Transform from  depth_optical_frame to output frame!");
+  rclcpp::Time transform_time = node_->now();
+  std::string tf_error;
+  while (rclcpp::ok() && !tf_buffer_->canTransform(depth_optical_frame, output_frame, tf2_ros::fromMsg(transform_time),
+    tf2::durationFromSec(3.0), &tf_error)) //tf2::TimePointZero
+  {
+    RCLCPP_INFO(node_->get_logger(), "Timed out waiting for transform from %s to %s"
+      " to become available, tf error: %s",
+      depth_optical_frame.c_str(), output_frame.c_str(), tf_error.c_str());
+    tf_error.clear();
+  }
+
+  geometry_msgs::msg::TransformStamped tf_depthOpticalFrame2outputFrame;
+  try {
+    tf_depthOpticalFrame2outputFrame = tf_buffer_->lookupTransform(output_frame, depth_optical_frame, tf2::TimePointZero);
+    RCLCPP_INFO(node_->get_logger(), "transform from %s to %s is : x = %.4f; y = %.4f; z = %.4f;", 
+                depth_optical_frame.c_str(), 
+                output_frame.c_str(),
+                tf_depthOpticalFrame2outputFrame.transform.translation.x,
+                tf_depthOpticalFrame2outputFrame.transform.translation.y,
+                tf_depthOpticalFrame2outputFrame.transform.translation.z);
+    dtl_.depthDevice2output_tf_.setOrigin(tf2::Vector3(
+        tf_depthOpticalFrame2outputFrame.transform.translation.x,
+        tf_depthOpticalFrame2outputFrame.transform.translation.y,
+        tf_depthOpticalFrame2outputFrame.transform.translation.z)); 
+
+    dtl_.depthDevice2output_tf_.setRotation(tf2::Quaternion(
+        tf_depthOpticalFrame2outputFrame.transform.rotation.x,
+        tf_depthOpticalFrame2outputFrame.transform.rotation.y,
+        tf_depthOpticalFrame2outputFrame.transform.rotation.z,
+        tf_depthOpticalFrame2outputFrame.transform.rotation.w));
+  } catch (tf2::TransformException & ex) {
+    RCLCPP_ERROR(node_->get_logger(), ex.what());
+  }
 }
 
 DepthImageToLaserScanROS::~DepthImageToLaserScanROS()

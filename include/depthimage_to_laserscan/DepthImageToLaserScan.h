@@ -46,6 +46,11 @@
 #include <opencv2/core/core.hpp>
 #include <sensor_msgs/msg/camera_info.hpp>
 
+#include <tf2/LinearMath/Transform.h>
+#include <tf2_ros/transform_listener.h>
+#include <tf2_ros/buffer.h>
+#include <tf2/transform_datatypes.h>
+
 namespace depthimage_to_laserscan
 { 
   class DepthImageToLaserScan
@@ -115,6 +120,7 @@ namespace depthimage_to_laserscan
      * 
      */
     void set_output_frame(const std::string output_frame_id);
+    void set_depth_optical_frame(const std::string depth_optical_frame);
 
   private:
     /**
@@ -174,39 +180,49 @@ namespace depthimage_to_laserscan
                  const sensor_msgs::msg::LaserScan::SharedPtr& scan_msg, const int& scan_height) const{
       // Use correct principal point from calibration
       float center_x = cam_model.cx();
+      float center_y = cam_model.cy();
 
       // Combine unit conversion (if necessary) with scaling by focal length for computing (X,Y)
       double unit_scaling = depthimage_to_laserscan::DepthTraits<T>::toMeters( T(1) );
       float constant_x = unit_scaling / cam_model.fx();
-      
+      float constant_y = unit_scaling / cam_model.fy();
+
       const T* depth_row = reinterpret_cast<const T*>(&depth_msg->data[0]);
       int row_step = depth_msg->step / sizeof(T);
 
       int offset = static_cast<int>(cam_model.cy() - scan_height / 2);
       depth_row += offset*row_step; // Offset to center of image
       for(int v = offset; v < offset+scan_height_; v++, depth_row += row_step){
-		for (int u = 0; u < (int)depth_msg->width; u++) // Loop over each pixel in row
-		{	
-		  T depth = depth_row[u];
-		  
-		  double r = depth; // Assign to pass through NaNs and Infs
-		  double th = -atan2((double)(u - center_x) * constant_x, unit_scaling); // Atan2(x, z), but depth divides out
-		  int index = (th - scan_msg->angle_min) / scan_msg->angle_increment;
-		  
-		  if (depthimage_to_laserscan::DepthTraits<T>::valid(depth)){ // Not NaN or Inf
-		    // Calculate in XYZ
-		    double x = (u - center_x) * depth * constant_x;
-		    double z = depthimage_to_laserscan::DepthTraits<T>::toMeters(depth);
-		    
-		    // Calculate actual distance
-		    r = sqrt(pow(x, 2.0) + pow(z, 2.0));
-		  }
-	  
-	  // Determine if this point should be used.
-	  if(use_point(r, scan_msg->ranges[index], scan_msg->range_min, scan_msg->range_max)){
-	    scan_msg->ranges[index] = r;
-	  }
-	}
+        for (int u = 0; u < (int)depth_msg->width; u++) // Loop over each pixel in row
+        {	
+          T depth = depth_row[u];
+
+          if (depthimage_to_laserscan::DepthTraits<T>::valid(depth)){ // Not NaN or Inf
+            // Calculate in XYZ
+            double dx = (center_x - u) * depth * constant_x;
+            double dy = (center_y - v) * depth * constant_y;
+            double dz = depthimage_to_laserscan::DepthTraits<T>::toMeters(depth);
+
+            double X, Y, Z;
+            /* ROS TF 变换 */
+            tf2::Transform obj2depthDevice_tf(tf2::Quaternion(0, 0, 0, 1), tf2::Vector3(-dx, -dy, dz));
+            tf2::Transform XYZ2laser_tf = depthDevice2output_tf_ * obj2depthDevice_tf;
+            X = XYZ2laser_tf.getOrigin().x();
+            Y = XYZ2laser_tf.getOrigin().y();
+            Z = XYZ2laser_tf.getOrigin().z();
+
+            double r = depth; // Assign to pass through NaNs and Infs
+            int index = (atan2(Y, X) - scan_msg->angle_min) / scan_msg->angle_increment + 0.5; //0.5 -> rounding 
+
+            // Calculate actual distance
+            r = sqrt(pow(X, 2.0) + pow(Y, 2.0));
+
+            // Determine if this point should be used.
+            if(use_point(r, scan_msg->ranges[index], scan_msg->range_min, scan_msg->range_max)){
+              scan_msg->ranges[index] = r;
+            }
+          }
+	      }
       }
     }
     
@@ -217,6 +233,10 @@ namespace depthimage_to_laserscan
     float range_max_; ///< Stores the current maximum range to use.
     int scan_height_; ///< Number of pixel rows to use when producing a laserscan from an area.
     std::string output_frame_id_; ///< Output frame_id for each laserscan.  This is likely NOT the camera's frame_id.
+    std::string depth_optical_frame_;
+public:
+    tf2::Transform depthDevice2output_tf_;
+
   };
   
   

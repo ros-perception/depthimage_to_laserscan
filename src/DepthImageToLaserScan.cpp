@@ -170,3 +170,7 @@ void DepthImageToLaserScan::set_scan_height(const int scan_height){
 void DepthImageToLaserScan::set_output_frame(const std::string output_frame_id){
   output_frame_id_ = output_frame_id;
 }
+
+void DepthImageToLaserScan::set_depth_optical_frame(const std::string depth_optical_frame){
+  depth_optical_frame_ = depth_optical_frame;
+}

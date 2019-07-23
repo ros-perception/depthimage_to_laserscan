@@ -10,6 +10,8 @@ find_package(image_geometry REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(tf2_ros REQUIRED)
 
 include_directories(include)
 
@@ -20,6 +22,8 @@ ament_target_dependencies(DepthImageToLaserScan
   "image_geometry"
   "OpenCV"
   "sensor_msgs"
+  tf2
+  tf2_ros
 )
 
 add_library(DepthImageToLaserScanROS
