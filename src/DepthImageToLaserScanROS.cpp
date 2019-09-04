@@ -47,36 +47,29 @@
 using namespace depthimage_to_laserscan;
 
 DepthImageToLaserScanROS::DepthImageToLaserScanROS(rclcpp::Node::SharedPtr & node):node_(node) {
-
-  cam_info_sub_ = node_->create_subscription<sensor_msgs::msg::CameraInfo>("depth_camera_info",
+  auto qos = rclcpp::QoS(rclcpp::KeepLast(10));
+  cam_info_sub_ = node_->create_subscription<sensor_msgs::msg::CameraInfo>("depth_camera_info", qos,
       std::bind(
         &DepthImageToLaserScanROS::infoCb, this,
-        std::placeholders::_1),
-      rmw_qos_profile_sensor_data);
+        std::placeholders::_1));
 
   depth_image_sub_ =
-    node_->create_subscription<sensor_msgs::msg::Image>("depth",
-      std::bind(&DepthImageToLaserScanROS::depthCb, this, std::placeholders::_1),
-      rmw_qos_profile_sensor_data);
+    node_->create_subscription<sensor_msgs::msg::Image>("depth", qos,
+      std::bind(&DepthImageToLaserScanROS::depthCb, this, std::placeholders::_1));
 
-  scan_pub_ = node_->create_publisher<sensor_msgs::msg::LaserScan>("scan");
+  scan_pub_ = node_->create_publisher<sensor_msgs::msg::LaserScan>("scan", qos);
 
-  float scan_time = 0.033;
-  node_->get_parameter("scan_time", scan_time);
+  float scan_time = node_->declare_parameter("scan_time", 0.033);
   dtl_.set_scan_time(scan_time);
 
-  float range_min = 0.45;
-  float range_max = 10.0;
-  node_->get_parameter("range_min", range_min);
-  node_->get_parameter("range_max", range_max);
+  float range_min = node_->declare_parameter("range_min", 0.15);
+  float range_max  = node_->declare_parameter("range_max", 3.0);
   dtl_.set_range_limits(range_min, range_max);
 
-  int scan_height = 1;
-  node_->get_parameter("scan_height", scan_height);
+  int scan_height = node_->declare_parameter("scan_height", 1);
   dtl_.set_scan_height(scan_height);
 
-  std::string output_frame = "camera_depth_frame";
-  node_->get_parameter("output_frame", output_frame);
+  std::string output_frame = node_->declare_parameter("output_frame", "camera_depth_optical_frame");
   dtl_.set_output_frame(output_frame);
 }
 
@@ -99,7 +92,7 @@ void DepthImageToLaserScanROS::depthCb(const sensor_msgs::msg::Image::SharedPtr 
   try
   {
     sensor_msgs::msg::LaserScan::SharedPtr scan_msg = dtl_.convert_msg(image, cam_info_);
-    scan_pub_->publish(scan_msg);
+    scan_pub_->publish(*scan_msg);
   }
   catch (std::runtime_error& e)
   {
