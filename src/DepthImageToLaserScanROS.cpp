@@ -47,7 +47,7 @@
 using namespace depthimage_to_laserscan;
 
 DepthImageToLaserScanROS::DepthImageToLaserScanROS(rclcpp::Node::SharedPtr & node):node_(node) {
-  auto qos = rclcpp::SensorDataQoS();
+  auto qos = rclcpp:: SystemDefaultsQoS();
   cam_info_sub_ = node_->create_subscription<sensor_msgs::msg::CameraInfo>("depth_camera_info", qos,
       std::bind(
         &DepthImageToLaserScanROS::infoCb, this,
