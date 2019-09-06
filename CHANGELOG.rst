@@ -4,11 +4,6 @@ Changelog for package depthimage_to_laserscan
 
 2.2.1 (2019-03-29)
 ------------------
-* Update code to align with ros2 dashing.
-* Contributors: Chad Rockey, Chris Lalancette, Mikael Arguedas, Shane Loretz, dhood, Gary Liu
-
-2.2.1 (2019-03-29)
-------------------
 * Port depthimage_to_laserscan to ROS2.
 * Import ROS2 changes from https://github.com/ros2/depthimage_to_laserscan.git to upstream
 * Contributors: Chad Rockey, Chris Lalancette, Mikael Arguedas, Shane Loretz, dhood
