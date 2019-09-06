@@ -66,7 +66,7 @@ namespace depthimage_to_laserscan
      * @return sensor_msgs::msg::LaserScan::SharedPtr for the center row(s) of the depth image.
      * 
      */
-    sensor_msgs::msg::LaserScan::SharedPtr convert_msg(const sensor_msgs::msg::Image::ConstSharedPtr& depth_msg,
+    sensor_msgs::msg::LaserScan::UniquePtr convert_msg(const sensor_msgs::msg::Image::ConstSharedPtr& depth_msg,
                                                        const sensor_msgs::msg::CameraInfo::ConstSharedPtr& info_msg);
 
     /**
@@ -171,7 +171,7 @@ namespace depthimage_to_laserscan
     */
     template<typename T>
     void convert(const sensor_msgs::msg::Image::ConstSharedPtr& depth_msg, const image_geometry::PinholeCameraModel& cam_model,
-                 const sensor_msgs::msg::LaserScan::SharedPtr& scan_msg, const int& scan_height) const{
+                 const sensor_msgs::msg::LaserScan::UniquePtr& scan_msg, const int& scan_height) const{
       // Use correct principal point from calibration
       float center_x = cam_model.cx();
 

@@ -90,7 +90,7 @@ bool DepthImageToLaserScan::use_point(const float new_value, const float old_val
   return shorter_check;
 }
 
-sensor_msgs::msg::LaserScan::SharedPtr DepthImageToLaserScan::convert_msg(const sensor_msgs::msg::Image::ConstSharedPtr& depth_msg,
+sensor_msgs::msg::LaserScan::UniquePtr DepthImageToLaserScan::convert_msg(const sensor_msgs::msg::Image::ConstSharedPtr& depth_msg,
              const sensor_msgs::msg::CameraInfo::ConstSharedPtr& info_msg){
   // Set camera model
   cam_model_.fromCameraInfo(info_msg);
@@ -112,7 +112,7 @@ sensor_msgs::msg::LaserScan::SharedPtr DepthImageToLaserScan::convert_msg(const 
   double angle_min = -angle_between_rays(center_ray, right_ray); // Negative because the laserscan message expects an opposite rotation of that from the depth image
   
   // Fill in laserscan message
-  sensor_msgs::msg::LaserScan::SharedPtr scan_msg = std::make_shared<sensor_msgs::msg::LaserScan>();
+  sensor_msgs::msg::LaserScan::UniquePtr scan_msg = std::make_unique<sensor_msgs::msg::LaserScan>();
   scan_msg->header = depth_msg->header;
   if(output_frame_id_.length() > 0){
     scan_msg->header.frame_id = output_frame_id_;
