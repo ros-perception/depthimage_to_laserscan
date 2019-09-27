@@ -2,8 +2,8 @@
 Changelog for package depthimage_to_laserscan
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.2.2 (2019-09-27)
+------------------
 * update code to be consist with new ros2 core (`#42 <https://github.com/ros-perception/depthimage_to_laserscan/issues/42>`_)
 * Contributors: Gary Liu
 
