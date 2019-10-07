@@ -39,7 +39,7 @@
 #include <sensor_msgs/msg/image.hpp>
 #include <sensor_msgs/msg/laser_scan.hpp>
 
-#include <depthimage_to_laserscan/DepthImageToLaserScan.h>
+#include <depthimage_to_laserscan/DepthImageToLaserScan.hpp>
 #include <depthimage_to_laserscan/DepthImageToLaserScanROS_export.h>
 
 namespace depthimage_to_laserscan

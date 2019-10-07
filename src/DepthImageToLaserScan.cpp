@@ -31,7 +31,7 @@
  * Author: Chad Rockey
  */
 
-#include <depthimage_to_laserscan/DepthImageToLaserScan.h>
+#include <depthimage_to_laserscan/DepthImageToLaserScan.hpp>
 
 #include <cmath>
 #include <limits>

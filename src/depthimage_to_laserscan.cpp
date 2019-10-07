@@ -31,7 +31,7 @@
  * Author: Chad Rockey
  */
 
-#include <depthimage_to_laserscan/DepthImageToLaserScanROS.h>
+#include <depthimage_to_laserscan/DepthImageToLaserScanROS.hpp>
 
 #include <rclcpp/rclcpp.hpp>
 
