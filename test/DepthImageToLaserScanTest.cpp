@@ -27,21 +27,17 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-/* 
+/*
  * Author: Chad Rockey
  */
+
+#include <limits>
+#include <cmath>
 
 // Bring in my package's API, which is what I'm testing
 #include <depthimage_to_laserscan/DepthImageToLaserScan.h>
 // Bring in gtest
 #include <gtest/gtest.h>
-
-#include <limits.h>
-#include <math.h>
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <time.h>
 
 #include <sensor_msgs/image_encodings.hpp>
 
@@ -65,7 +61,7 @@ TEST(ConvertTest, setupLibrary)
   dtl_.set_scan_height(scan_height);
   const std::string output_frame = "camera_depth_frame";
   dtl_.set_output_frame(output_frame);
-  
+
   depth_msg_.reset(new sensor_msgs::msg::Image);
   depth_msg_->header.stamp.sec = 0;
   depth_msg_->header.stamp.nanosec = 0;
@@ -77,7 +73,7 @@ TEST(ConvertTest, setupLibrary)
   depth_msg_->step = depth_msg_->width*2; // 2 bytes per pixel
   uint16_t value = 0x0F;
   depth_msg_->data.assign(depth_msg_->height*depth_msg_->step, value); // Sets all values to 3.855m
-  
+
   info_msg_.reset(new sensor_msgs::msg::CameraInfo);
   info_msg_->header = depth_msg_->header;
   info_msg_->height = depth_msg_->height;
@@ -123,7 +119,7 @@ TEST(ConvertTest, setupLibrary)
   info_msg_->p[11] = 0.0;
 
   sensor_msgs::msg::LaserScan::SharedPtr scan_msg = dtl_.convert_msg(depth_msg_, info_msg_);
-  
+
   // Test set variables
   EXPECT_EQ(scan_msg->scan_time, scan_time);
   EXPECT_EQ(scan_msg->range_min, range_min);
@@ -162,8 +158,7 @@ TEST(ConvertTest, testScanHeight)
     data += offset*row_step; // Offset to center of image
 
     for(int v = 0; v < scan_height; v++, data += row_step){
-      for (int u = 0; u < data_len; u++) // Loop over each pixel in row
-      {
+      for (int u = 0; u < data_len; u++){ // Loop over each pixel in row
 	if(v % scan_height == u % scan_height){
 	  data[u] = low_value;
 	} else {
@@ -185,10 +180,10 @@ TEST(ConvertTest, testScanHeight)
       }
     }
   }
-  
+
   // Revert to 1 scan height
   dtl_.set_scan_height(1);
-  
+
 }
 
 // Test a randomly filled image and ensure all values are < range_min
@@ -196,15 +191,15 @@ TEST(ConvertTest, testScanHeight)
 TEST(ConvertTest, testRandom)
 {
   srand ( 8675309 ); // Set seed for repeatable tests
-  
+
   uint16_t* data = reinterpret_cast<uint16_t*>(&depth_msg_->data[0]);
   for(size_t i = 0; i < depth_msg_->width*depth_msg_->height; i++){
     data[i] = rand() % 500; // Distance between 0 and 0.5m
   }
-  
+
   // Convert
   sensor_msgs::msg::LaserScan::SharedPtr scan_msg = dtl_.convert_msg(depth_msg_, info_msg_);
-  
+
   // Make sure all values are greater than or equal to range_min and less than or equal to range_max
   for(size_t i = 0; i < scan_msg->ranges.size(); i++){
     if(std::isfinite(scan_msg->ranges[i])){
@@ -222,15 +217,15 @@ TEST(ConvertTest, testNaN)
   float_msg->encoding = sensor_msgs::image_encodings::TYPE_32FC1;
   float_msg->step = float_msg->width*4; // 4 bytes per pixel
   float_msg->data.resize(float_msg->step * float_msg->height);
-  
+
   float* data = reinterpret_cast<float*>(&float_msg->data[0]);
   for(size_t i = 0; i < float_msg->width*float_msg->height; i++){
     data[i] = std::numeric_limits<float>::quiet_NaN();
   }
-  
+
   // Convert
   sensor_msgs::msg::LaserScan::SharedPtr scan_msg = dtl_.convert_msg(float_msg, info_msg_);
-  
+
   // Make sure all values are NaN
   for(size_t i = 0; i < scan_msg->ranges.size(); i++){
     if(std::isfinite(scan_msg->ranges[i])){
@@ -247,15 +242,15 @@ TEST(ConvertTest, testPositiveInf)
   float_msg->encoding = sensor_msgs::image_encodings::TYPE_32FC1;
   float_msg->step = float_msg->width*4; // 4 bytes per pixel
   float_msg->data.resize(float_msg->step * float_msg->height);
-  
+
   float* data = reinterpret_cast<float*>(&float_msg->data[0]);
   for(size_t i = 0; i < float_msg->width*float_msg->height; i++){
     data[i] = std::numeric_limits<float>::infinity();
   }
-  
+
   // Convert
   sensor_msgs::msg::LaserScan::SharedPtr scan_msg = dtl_.convert_msg(float_msg, info_msg_);
-  
+
   // Make sure most (> 80%) values are Inf
   size_t nan_count = 0;
   for(size_t i = 0; i < scan_msg->ranges.size(); i++){
@@ -267,7 +262,7 @@ TEST(ConvertTest, testPositiveInf)
       ADD_FAILURE() << "Negative value produced from postive infinity test.";
     }
   }
-  
+
   ASSERT_LE(nan_count, scan_msg->ranges.size() * 0.80);
 }
 
@@ -279,15 +274,15 @@ TEST(ConvertTest, testNegativeInf)
   float_msg->encoding = sensor_msgs::image_encodings::TYPE_32FC1;
   float_msg->step = float_msg->width*4; // 4 bytes per pixel
   float_msg->data.resize(float_msg->step * float_msg->height);
-  
+
   float* data = reinterpret_cast<float*>(&float_msg->data[0]);
   for(size_t i = 0; i < float_msg->width*float_msg->height; i++){
     data[i] = -std::numeric_limits<float>::infinity();
   }
-  
+
   // Convert
   sensor_msgs::msg::LaserScan::SharedPtr scan_msg = dtl_.convert_msg(float_msg, info_msg_);
-  
+
   // Make sure most (> 80%) values are Inf
   size_t nan_count = 0;
   for(size_t i = 0; i < scan_msg->ranges.size(); i++){
@@ -299,13 +294,12 @@ TEST(ConvertTest, testNegativeInf)
       ADD_FAILURE() << "Postive value produced from negative infinity test.";
     }
   }
-  
+
   ASSERT_LE(nan_count, scan_msg->ranges.size() * 0.80);
 }
 
-
 // Run all the tests that were declared with TEST()
 int main(int argc, char **argv){
-testing::InitGoogleTest(&argc, argv);
-return RUN_ALL_TESTS();
+  testing::InitGoogleTest(&argc, argv);
+  return RUN_ALL_TESTS();
 }

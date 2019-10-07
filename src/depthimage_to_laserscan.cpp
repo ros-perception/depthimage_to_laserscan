@@ -27,11 +27,13 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-/* 
+/*
  * Author: Chad Rockey
  */
 
 #include <depthimage_to_laserscan/DepthImageToLaserScanROS.h>
+
+#include <rclcpp/rclcpp.hpp>
 
 int main(int argc, char **argv){
   rclcpp::init(argc, argv);
