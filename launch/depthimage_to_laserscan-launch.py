@@ -15,12 +15,14 @@
 # /* Author: Gary Liu */
 
 import os
+
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch_ros.actions import Node
 
+
 def generate_launch_description():
-    param_config_dir = os.path.join(get_package_share_directory('depthimage_to_laserscan'), 'cfg', 'param.yaml')
+    param_config = os.path.join(get_package_share_directory('depthimage_to_laserscan'), 'cfg', 'param.yaml')
     return LaunchDescription([
         Node(
             package='depthimage_to_laserscan',
@@ -28,5 +30,5 @@ def generate_launch_description():
             node_name='depthimage_to_laserscan_node',
             remappings=[('depth','/camera/depth/image_rect_raw'),
                         ('depth_camera_info', '/camera/depth/camera_info')],
-            parameters=[param_config_dir])
+            parameters=[param_config])
     ])
