@@ -35,7 +35,7 @@
 #include <cmath>
 
 // Bring in my package's API, which is what I'm testing
-#include <depthimage_to_laserscan/DepthImageToLaserScan.h>
+#include <depthimage_to_laserscan/DepthImageToLaserScan.hpp>
 // Bring in gtest
 #include <gtest/gtest.h>
 
