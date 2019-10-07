@@ -38,9 +38,7 @@
 int main(int argc, char **argv){
   rclcpp::init(argc, argv);
 
-  rclcpp::Node::SharedPtr node = rclcpp::Node::make_shared("depthimage_to_laserscan");
-
-  depthimage_to_laserscan::DepthImageToLaserScanROS dtl(node);
+  auto node = std::make_shared<depthimage_to_laserscan::DepthImageToLaserScanROS>(rclcpp::NodeOptions());
 
   rclcpp::spin(node);
 
