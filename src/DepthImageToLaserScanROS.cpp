@@ -41,7 +41,7 @@
 #include <sensor_msgs/msg/image.hpp>
 #include <sensor_msgs/msg/laser_scan.hpp>
 
-#include <depthimage_to_laserscan/DepthImageToLaserScanROS.h>
+#include <depthimage_to_laserscan/DepthImageToLaserScanROS.hpp>
 
 #define ROS_ERROR RCUTILS_LOG_ERROR
 #define ROS_ERROR_THROTTLE(sec, ...) RCUTILS_LOG_ERROR_THROTTLE(RCUTILS_STEADY_TIME, sec, __VA_ARGS__)
