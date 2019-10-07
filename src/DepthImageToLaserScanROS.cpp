@@ -36,6 +36,7 @@
 #include <string>
 
 #include <rclcpp/rclcpp.hpp>
+#include <rclcpp_components/register_node_macro.hpp>
 #include <rcutils/logging_macros.h>
 #include <sensor_msgs/msg/camera_info.hpp>
 #include <sensor_msgs/msg/image.hpp>
@@ -43,35 +44,32 @@
 
 #include <depthimage_to_laserscan/DepthImageToLaserScanROS.hpp>
 
-#define ROS_ERROR RCUTILS_LOG_ERROR
-#define ROS_ERROR_THROTTLE(sec, ...) RCUTILS_LOG_ERROR_THROTTLE(RCUTILS_STEADY_TIME, sec, __VA_ARGS__)
-
 namespace depthimage_to_laserscan{
 
-DepthImageToLaserScanROS::DepthImageToLaserScanROS(rclcpp::Node::SharedPtr & node):node_(node){
+DepthImageToLaserScanROS::DepthImageToLaserScanROS(const rclcpp::NodeOptions & options): rclcpp::Node("depthimage_to_laserscan", options){
   auto qos = rclcpp:: SystemDefaultsQoS();
-  cam_info_sub_ = node_->create_subscription<sensor_msgs::msg::CameraInfo>("depth_camera_info", qos,
+  cam_info_sub_ = this->create_subscription<sensor_msgs::msg::CameraInfo>("depth_camera_info", qos,
       std::bind(
         &DepthImageToLaserScanROS::infoCb, this,
         std::placeholders::_1));
 
   depth_image_sub_ =
-    node_->create_subscription<sensor_msgs::msg::Image>("depth", qos,
+    this->create_subscription<sensor_msgs::msg::Image>("depth", qos,
       std::bind(&DepthImageToLaserScanROS::depthCb, this, std::placeholders::_1));
 
-  scan_pub_ = node_->create_publisher<sensor_msgs::msg::LaserScan>("scan", qos);
+  scan_pub_ = this->create_publisher<sensor_msgs::msg::LaserScan>("scan", qos);
 
-  float scan_time = node_->declare_parameter("scan_time", 0.033);
+  float scan_time = this->declare_parameter("scan_time", 0.033);
   dtl_.set_scan_time(scan_time);
 
-  float range_min = node_->declare_parameter("range_min", 0.45);
-  float range_max  = node_->declare_parameter("range_max", 10.0);
+  float range_min = this->declare_parameter("range_min", 0.45);
+  float range_max  = this->declare_parameter("range_max", 10.0);
   dtl_.set_range_limits(range_min, range_max);
 
-  int scan_height = node_->declare_parameter("scan_height", 1);
+  int scan_height = this->declare_parameter("scan_height", 1);
   dtl_.set_scan_height(scan_height);
 
-  std::string output_frame = node_->declare_parameter("output_frame", "camera_depth_frame");
+  std::string output_frame = this->declare_parameter("output_frame", "camera_depth_frame");
   dtl_.set_output_frame(output_frame);
 }
 
@@ -84,7 +82,7 @@ void DepthImageToLaserScanROS::infoCb(sensor_msgs::msg::CameraInfo::SharedPtr in
 
 void DepthImageToLaserScanROS::depthCb(const sensor_msgs::msg::Image::SharedPtr image){
   if (nullptr == cam_info_){
-    ROS_ERROR("No camera info, skipping point cloud squash");
+    RCLCPP_INFO(get_logger(), "No camera info, skipping point cloud squash");
     return;
   }
 
@@ -93,7 +91,9 @@ void DepthImageToLaserScanROS::depthCb(const sensor_msgs::msg::Image::SharedPtr 
     scan_pub_->publish(std::move(scan_msg));
   }
   catch (std::runtime_error& e){
-    ROS_ERROR_THROTTLE(1.0, "Could not convert depth image to laserscan: %s", e.what());
+    RCLCPP_ERROR(get_logger(), "Could not convert depth image to laserscan: %s", e.what());
   }
 }
 }  // namespace depthimage_to_laserscan
+
+RCLCPP_COMPONENTS_REGISTER_NODE(depthimage_to_laserscan::DepthImageToLaserScanROS)
