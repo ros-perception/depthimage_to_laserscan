@@ -27,9 +27,13 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-/* 
+/*
  * Author: Chad Rockey
  */
+
+#include <functional>
+#include <stdexcept>
+#include <string>
 
 #include <rclcpp/rclcpp.hpp>
 #include <rcutils/logging_macros.h>
@@ -37,16 +41,14 @@
 #include <sensor_msgs/msg/image.hpp>
 #include <sensor_msgs/msg/laser_scan.hpp>
 
-#include <functional>
-
 #include <depthimage_to_laserscan/DepthImageToLaserScanROS.h>
 
 #define ROS_ERROR RCUTILS_LOG_ERROR
 #define ROS_ERROR_THROTTLE(sec, ...) RCUTILS_LOG_ERROR_THROTTLE(RCUTILS_STEADY_TIME, sec, __VA_ARGS__)
 
-using namespace depthimage_to_laserscan;
+namespace depthimage_to_laserscan{
 
-DepthImageToLaserScanROS::DepthImageToLaserScanROS(rclcpp::Node::SharedPtr & node):node_(node) {
+DepthImageToLaserScanROS::DepthImageToLaserScanROS(rclcpp::Node::SharedPtr & node):node_(node){
   auto qos = rclcpp:: SystemDefaultsQoS();
   cam_info_sub_ = node_->create_subscription<sensor_msgs::msg::CameraInfo>("depth_camera_info", qos,
       std::bind(
@@ -73,29 +75,25 @@ DepthImageToLaserScanROS::DepthImageToLaserScanROS(rclcpp::Node::SharedPtr & nod
   dtl_.set_output_frame(output_frame);
 }
 
-DepthImageToLaserScanROS::~DepthImageToLaserScanROS()
-{
+DepthImageToLaserScanROS::~DepthImageToLaserScanROS(){
 }
 
-void DepthImageToLaserScanROS::infoCb(sensor_msgs::msg::CameraInfo::SharedPtr info)
-{
+void DepthImageToLaserScanROS::infoCb(sensor_msgs::msg::CameraInfo::SharedPtr info){
   cam_info_ = info;
 }
 
-void DepthImageToLaserScanROS::depthCb(const sensor_msgs::msg::Image::SharedPtr image)
-{
-  if (nullptr == cam_info_) {
+void DepthImageToLaserScanROS::depthCb(const sensor_msgs::msg::Image::SharedPtr image){
+  if (nullptr == cam_info_){
     ROS_ERROR("No camera info, skipping point cloud squash");
     return;
   }
 
-  try
-  {
+  try{
     sensor_msgs::msg::LaserScan::UniquePtr scan_msg = dtl_.convert_msg(image, cam_info_);
     scan_pub_->publish(std::move(scan_msg));
   }
-  catch (std::runtime_error& e)
-  {
+  catch (std::runtime_error& e){
     ROS_ERROR_THROTTLE(1.0, "Could not convert depth image to laserscan: %s", e.what());
   }
 }
+}  // namespace depthimage_to_laserscan
