@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.5)
 project(depthimage_to_laserscan)
+include(GenerateExportHeader)
+
 if(NOT WIN32)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -Wall -Wextra -Wpedantic")
 endif()
@@ -21,6 +23,8 @@ ament_target_dependencies(DepthImageToLaserScan
   "OpenCV"
   "sensor_msgs"
 )
+generate_export_header(DepthImageToLaserScan EXPORT_FILE_NAME ${PROJECT_NAME}/DepthImageToLaserScan_export.h)
+target_include_directories(DepthImageToLaserScan PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>")
 
 add_library(DepthImageToLaserScanROS
   src/DepthImageToLaserScanROS.cpp
@@ -29,6 +33,8 @@ ament_target_dependencies(DepthImageToLaserScanROS
   "rclcpp"
 )
 target_link_libraries(DepthImageToLaserScanROS DepthImageToLaserScan)
+generate_export_header(DepthImageToLaserScanROS EXPORT_FILE_NAME ${PROJECT_NAME}/DepthImageToLaserScanROS_export.h)
+target_include_directories(DepthImageToLaserScanROS PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>")
 
 add_executable(depthimage_to_laserscan_node
   src/depthimage_to_laserscan.cpp
@@ -51,6 +57,11 @@ install(TARGETS DepthImageToLaserScan DepthImageToLaserScanROS
 install(TARGETS depthimage_to_laserscan_node
   DESTINATION lib/${PROJECT_NAME}
 )
+
+install(FILES
+  ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/DepthImageToLaserScan_export.h
+  ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/DepthImageToLaserScanROS_export.h
+  DESTINATION include/${PROJECT_NAME})
 
 if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)

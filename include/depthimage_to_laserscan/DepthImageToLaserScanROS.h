@@ -40,10 +40,11 @@
 #include <sensor_msgs/msg/laser_scan.hpp>
 
 #include <depthimage_to_laserscan/DepthImageToLaserScan.h>
+#include <depthimage_to_laserscan/DepthImageToLaserScanROS_export.h>
 
 namespace depthimage_to_laserscan
 { 
-  class DepthImageToLaserScanROS
+  class DEPTHIMAGETOLASERSCANROS_EXPORT DepthImageToLaserScanROS
   {
   public:
     explicit DepthImageToLaserScanROS(rclcpp::Node::SharedPtr & node);
