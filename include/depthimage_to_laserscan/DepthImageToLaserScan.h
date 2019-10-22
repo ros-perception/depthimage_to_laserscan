@@ -38,6 +38,7 @@
 #include <sensor_msgs/msg/laser_scan.hpp>
 #include <image_geometry/pinhole_camera_model.h>
 #include <depthimage_to_laserscan/depth_traits.h>
+#include <depthimage_to_laserscan/DepthImageToLaserScan_export.h>
 #include <sstream>
 #include <limits.h>
 #include <math.h>
@@ -48,7 +49,7 @@
 
 namespace depthimage_to_laserscan
 { 
-  class DepthImageToLaserScan
+  class DEPTHIMAGETOLASERSCAN_EXPORT DepthImageToLaserScan
   {
   public:
     DepthImageToLaserScan();
