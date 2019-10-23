@@ -2,8 +2,8 @@
 Changelog for package depthimage_to_laserscan
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.2.4 (2019-10-23)
+------------------
 * Export interfaces for Win32 Shared Lib (`#44 <https://github.com/ros-perception/depthimage_to_laserscan/issues/44>`_)
 * Contributors: Sean Yen
 
