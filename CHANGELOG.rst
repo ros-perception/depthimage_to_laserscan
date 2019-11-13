@@ -2,8 +2,8 @@
 Changelog for package depthimage_to_laserscan
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.2.5 (2019-11-13)
+------------------
 * Update the README.md to describe the topics and parameters.
 * Add in a launch file for composable node.
 * Rename launch file to conform to recommendations.
