@@ -47,7 +47,8 @@
 
 namespace depthimage_to_laserscan {
 
-DepthImageToLaserScan::DepthImageToLaserScan(){
+DepthImageToLaserScan::DepthImageToLaserScan(float scan_time, float range_min, float range_max, int scan_height, const std::string& frame_id)
+: scan_time_(scan_time), range_min_(range_min), range_max_(range_max), scan_height_(scan_height), output_frame_id_(frame_id){
 }
 
 DepthImageToLaserScan::~DepthImageToLaserScan(){
@@ -148,23 +149,6 @@ sensor_msgs::msg::LaserScan::UniquePtr DepthImageToLaserScan::convert_msg(const 
   }
 
   return scan_msg;
-}
-
-void DepthImageToLaserScan::set_scan_time(const float scan_time){
-  scan_time_ = scan_time;
-}
-
-void DepthImageToLaserScan::set_range_limits(const float range_min, const float range_max){
-  range_min_ = range_min;
-  range_max_ = range_max;
-}
-
-void DepthImageToLaserScan::set_scan_height(const int scan_height){
-  scan_height_ = scan_height;
-}
-
-void DepthImageToLaserScan::set_output_frame(const std::string output_frame_id){
-  output_frame_id_ = output_frame_id;
 }
 
 }  // namespace depthimage_to_laserscan
