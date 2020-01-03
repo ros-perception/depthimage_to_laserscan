@@ -50,7 +50,25 @@ namespace depthimage_to_laserscan
   class DEPTHIMAGETOLASERSCAN_EXPORT DepthImageToLaserScan final
   {
   public:
-    DepthImageToLaserScan();
+    /**
+     * Constructor.
+     *
+     * @param scan_time The value to use for outgoing sensor_msgs::msg::LaserScan.  In sensor_msgs::msg::LaserScan,
+     *                  scan_time is defined as "time between scans [seconds]".  This value is not easily calculated
+     *                  from consecutive messages, and is thus left to the user to set correctly.
+     * @param range_min The minimum range for the sensor_msgs::msg::LaserScan.  This is used to determine how close
+     *                  of a value to allow through when multiple radii correspond to the same angular increment.
+     * @param range_max The maximum range for the sensor_msgs::msg::LaserScan.  This is used to set the output message.
+     * @param scan_height The number of rows (pixels) to use in the output.  This will provide scan_height number of
+     *                    radii for each angular increment.  The output scan will output the closest radius that is
+     *                    still not smaller than range_min.  This can be used to vertically compress obstacles into
+     *                    a single LaserScan.
+     * @param frame_id The output frame_id for the LaserScan.  This will probably NOT be the same frame_id as the
+     *                 depth image.  Example: For OpenNI cameras, this should be set to 'camera_depth_frame' while
+     *                 the camera uses 'camera_depth_optical_frame'.
+     *
+     */
+    explicit DepthImageToLaserScan(float scan_time, float range_min, float range_max, int scan_height, const std::string& frame_id);
     ~DepthImageToLaserScan();
 
     /**
@@ -67,53 +85,6 @@ namespace depthimage_to_laserscan
      */
     sensor_msgs::msg::LaserScan::UniquePtr convert_msg(const sensor_msgs::msg::Image::ConstSharedPtr& depth_msg,
                                                        const sensor_msgs::msg::CameraInfo::ConstSharedPtr& info_msg);
-
-    /**
-     * Sets the scan time parameter.
-     *
-     * This function stores the desired value for scan_time.  In sensor_msgs::msg::LaserScan, scan_time is defined as
-     * "time between scans [seconds]".  This value is not easily calculated from consecutive messages, and is thus
-     * left to the user to set correctly.
-     *
-     * @param scan_time The value to use for outgoing sensor_msgs::msg::LaserScan.
-     *
-     */
-    void set_scan_time(const float scan_time);
-
-    /**
-     * Sets the minimum and maximum range for the sensor_msgs::msg::LaserScan.
-     *
-     * range_min is used to determine how close of a value to allow through when multiple radii correspond to the same
-     * angular increment.  range_max is used to set the output message.
-     *
-     * @param range_min Minimum range to assign points to the laserscan, also minimum range to use points in the output scan.
-     * @param range_max Maximum range to use points in the output scan.
-     *
-     */
-    void set_range_limits(const float range_min, const float range_max);
-
-    /**
-     * Sets the number of image rows to use in the output LaserScan.
-     *
-     * scan_height is the number of rows (pixels) to use in the output.  This will provide scan_height number of radii for each
-     * angular increment.  The output scan will output the closest radius that is still not smaller than range_min.  This function
-     * can be used to vertically compress obstacles into a single LaserScan.
-     *
-     * @param scan_height Number of pixels centered around the center of the image to compress into the LaserScan.
-     *
-     */
-    void set_scan_height(const int scan_height);
-
-    /**
-     * Sets the frame_id for the output LaserScan.
-     *
-     * Output frame_id for the LaserScan.  Will probably NOT be the same frame_id as the depth image.
-     * Example: For OpenNI cameras, this should be set to 'camera_depth_frame' while the camera uses 'camera_depth_optical_frame'.
-     *
-     * @param output_frame_id Frame_id to use for the output sensor_msgs::msg::LaserScan.
-     *
-     */
-    void set_output_frame(const std::string output_frame_id);
 
   private:
     /**

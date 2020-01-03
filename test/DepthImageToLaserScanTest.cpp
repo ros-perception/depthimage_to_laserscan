@@ -42,8 +42,11 @@
 
 #include <sensor_msgs/image_encodings.hpp>
 
-// Library object
-depthimage_to_laserscan::DepthImageToLaserScan dtl_;
+const float g_scan_time = 1.0/30.0;
+const float g_range_min = 0.45;
+const float g_range_max = 10.0;
+const int g_scan_height = 1;
+const std::string g_output_frame = "camera_depth_frame";
 
 // Inputs
 sensor_msgs::msg::Image::SharedPtr depth_msg_;
@@ -52,16 +55,8 @@ sensor_msgs::msg::CameraInfo::SharedPtr info_msg_;
 // Check if the setters work properly and initialize member variables
 TEST(ConvertTest, setupLibrary)
 {
-  // Set up library
-  const float scan_time = 1.0/30.0;
-  dtl_.set_scan_time(scan_time);
-  const float range_min = 0.45;
-  const float range_max = 10.0;
-  dtl_.set_range_limits(range_min, range_max);
-  const int scan_height = 1;
-  dtl_.set_scan_height(scan_height);
-  const std::string output_frame = "camera_depth_frame";
-  dtl_.set_output_frame(output_frame);
+  depthimage_to_laserscan::DepthImageToLaserScan dtl(g_scan_time, g_range_min,
+                                                     g_range_max, g_scan_height, g_output_frame);
 
   depth_msg_.reset(new sensor_msgs::msg::Image);
   depth_msg_->header.stamp.sec = 0;
@@ -119,41 +114,44 @@ TEST(ConvertTest, setupLibrary)
   info_msg_->p[10] = 1.0;
   info_msg_->p[11] = 0.0;
 
-  sensor_msgs::msg::LaserScan::SharedPtr scan_msg = dtl_.convert_msg(depth_msg_, info_msg_);
+  sensor_msgs::msg::LaserScan::SharedPtr scan_msg = dtl.convert_msg(depth_msg_, info_msg_);
 
   // Test set variables
-  EXPECT_EQ(scan_msg->scan_time, scan_time);
-  EXPECT_EQ(scan_msg->range_min, range_min);
-  EXPECT_EQ(scan_msg->range_max, range_max);
-  EXPECT_EQ(scan_msg->header.frame_id, output_frame);
+  EXPECT_EQ(scan_msg->scan_time, g_scan_time);
+  EXPECT_EQ(scan_msg->range_min, g_range_min);
+  EXPECT_EQ(scan_msg->range_max, g_range_max);
+  EXPECT_EQ(scan_msg->header.frame_id, g_output_frame);
   EXPECT_EQ(scan_msg->ranges.size(), depth_msg_->width);
 }
 
 // Test for the exception based on encoding
 TEST(ConvertTest, testExceptions)
 {
+  depthimage_to_laserscan::DepthImageToLaserScan dtl(g_scan_time, g_range_min,
+                                                     g_range_max, g_scan_height, g_output_frame);
+
   // Test supported image encodings for exceptions
   // Does not segfault as long as scan_height = 1
   depth_msg_->encoding = sensor_msgs::image_encodings::RGB8;
-  EXPECT_THROW(dtl_.convert_msg(depth_msg_, info_msg_), std::runtime_error);
+  EXPECT_THROW(dtl.convert_msg(depth_msg_, info_msg_), std::runtime_error);
   depth_msg_->encoding = sensor_msgs::image_encodings::TYPE_32FC1;
-  EXPECT_NO_THROW(dtl_.convert_msg(depth_msg_, info_msg_));
+  EXPECT_NO_THROW(dtl.convert_msg(depth_msg_, info_msg_));
   depth_msg_->encoding = sensor_msgs::image_encodings::TYPE_16UC1;
-  EXPECT_NO_THROW(dtl_.convert_msg(depth_msg_, info_msg_));
+  EXPECT_NO_THROW(dtl.convert_msg(depth_msg_, info_msg_));
 }
 
 // Check to make sure the mininum is output for each pixel column for various scan heights
 TEST(ConvertTest, testScanHeight)
 {
   for(int scan_height = 1; scan_height <= 100; scan_height++){
+    depthimage_to_laserscan::DepthImageToLaserScan dtl(g_scan_time, g_range_min,
+                                                       g_range_max, scan_height, g_output_frame);
     uint16_t low_value = 500;
     uint16_t high_value = 3000;
 
     int data_len = depth_msg_->width;
     uint16_t* data = reinterpret_cast<uint16_t*>(&depth_msg_->data[0]);
     int row_step = depth_msg_->step / sizeof(uint16_t);
-
-    dtl_.set_scan_height(scan_height);
 
     int offset = static_cast<int>(info_msg_->k[5]-static_cast<double>(scan_height)/2.0);
     data += offset*row_step; // Offset to center of image
@@ -169,10 +167,10 @@ TEST(ConvertTest, testScanHeight)
     }
 
     // Convert
-    sensor_msgs::msg::LaserScan::SharedPtr scan_msg = dtl_.convert_msg(depth_msg_, info_msg_);
+    sensor_msgs::msg::LaserScan::SharedPtr scan_msg = dtl.convert_msg(depth_msg_, info_msg_);
 
     // Test for minimum
-    float high_float_thresh = (float)high_value * 1.0f/1000.0f * 0.9f; // 0.9f represents 10 percent margin on range
+    float high_float_thresh = static_cast<float>(high_value) * 1.0f/1000.0f * 0.9f; // 0.9f represents 10 percent margin on range
     for(size_t i = 0; i < scan_msg->ranges.size(); i++){
       // If this is a valid point
       if(scan_msg->range_min <= scan_msg->ranges[i] && scan_msg->ranges[i] <= scan_msg->range_max){
@@ -181,10 +179,6 @@ TEST(ConvertTest, testScanHeight)
       }
     }
   }
-
-  // Revert to 1 scan height
-  dtl_.set_scan_height(1);
-
 }
 
 // Test a randomly filled image and ensure all values are < range_min
@@ -199,8 +193,11 @@ TEST(ConvertTest, testRandom)
     data[i] = uniform_int(rng);
   }
 
+  depthimage_to_laserscan::DepthImageToLaserScan dtl(g_scan_time, g_range_min,
+                                                     g_range_max, g_scan_height, g_output_frame);
+
   // Convert
-  sensor_msgs::msg::LaserScan::SharedPtr scan_msg = dtl_.convert_msg(depth_msg_, info_msg_);
+  sensor_msgs::msg::LaserScan::SharedPtr scan_msg = dtl.convert_msg(depth_msg_, info_msg_);
 
   // Make sure all values are greater than or equal to range_min and less than or equal to range_max
   for(size_t i = 0; i < scan_msg->ranges.size(); i++){
@@ -225,8 +222,11 @@ TEST(ConvertTest, testNaN)
     data[i] = std::numeric_limits<float>::quiet_NaN();
   }
 
+  depthimage_to_laserscan::DepthImageToLaserScan dtl(g_scan_time, g_range_min,
+                                                     g_range_max, g_scan_height, g_output_frame);
+
   // Convert
-  sensor_msgs::msg::LaserScan::SharedPtr scan_msg = dtl_.convert_msg(float_msg, info_msg_);
+  sensor_msgs::msg::LaserScan::SharedPtr scan_msg = dtl.convert_msg(float_msg, info_msg_);
 
   // Make sure all values are NaN
   for(size_t i = 0; i < scan_msg->ranges.size(); i++){
@@ -250,8 +250,11 @@ TEST(ConvertTest, testPositiveInf)
     data[i] = std::numeric_limits<float>::infinity();
   }
 
+  depthimage_to_laserscan::DepthImageToLaserScan dtl(g_scan_time, g_range_min,
+                                                     g_range_max, g_scan_height, g_output_frame);
+
   // Convert
-  sensor_msgs::msg::LaserScan::SharedPtr scan_msg = dtl_.convert_msg(float_msg, info_msg_);
+  sensor_msgs::msg::LaserScan::SharedPtr scan_msg = dtl.convert_msg(float_msg, info_msg_);
 
   // Make sure most (> 80%) values are Inf
   size_t nan_count = 0;
@@ -282,8 +285,11 @@ TEST(ConvertTest, testNegativeInf)
     data[i] = -std::numeric_limits<float>::infinity();
   }
 
+  depthimage_to_laserscan::DepthImageToLaserScan dtl(g_scan_time, g_range_min,
+                                                     g_range_max, g_scan_height, g_output_frame);
+
   // Convert
-  sensor_msgs::msg::LaserScan::SharedPtr scan_msg = dtl_.convert_msg(float_msg, info_msg_);
+  sensor_msgs::msg::LaserScan::SharedPtr scan_msg = dtl.convert_msg(float_msg, info_msg_);
 
   // Make sure most (> 80%) values are Inf
   size_t nan_count = 0;
