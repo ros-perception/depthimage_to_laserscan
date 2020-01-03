@@ -31,8 +31,9 @@
  * Author: Chad Rockey
  */
 
-#include <limits>
 #include <cmath>
+#include <limits>
+#include <random>
 
 // Bring in my package's API, which is what I'm testing
 #include <depthimage_to_laserscan/DepthImageToLaserScan.hpp>
@@ -85,7 +86,7 @@ TEST(ConvertTest, setupLibrary)
   info_msg_->roi.y_offset = 0;
   info_msg_->roi.height = 0;
   info_msg_->roi.width = 0;
-  info_msg_->roi.do_rectify = 0;
+  info_msg_->roi.do_rectify = false;
   info_msg_->d.resize(5); // All 0, no distortion
   info_msg_->k[0] = 570.3422241210938;
   info_msg_->k[1] = 0.0;
@@ -154,7 +155,7 @@ TEST(ConvertTest, testScanHeight)
 
     dtl_.set_scan_height(scan_height);
 
-    int offset = (int)(info_msg_->k[5]-scan_height/2);
+    int offset = static_cast<int>(info_msg_->k[5]-static_cast<double>(scan_height)/2.0);
     data += offset*row_step; // Offset to center of image
 
     for(int v = 0; v < scan_height; v++, data += row_step){
@@ -190,11 +191,12 @@ TEST(ConvertTest, testScanHeight)
 // (range_max is currently violated to fill the messages)
 TEST(ConvertTest, testRandom)
 {
-  srand ( 8675309 ); // Set seed for repeatable tests
+  std::mt19937 rng(8675309);  // Set seed for repeatable tests
+  std::uniform_int_distribution<uint16_t> uniform_int(0, 500);
 
   uint16_t* data = reinterpret_cast<uint16_t*>(&depth_msg_->data[0]);
   for(size_t i = 0; i < depth_msg_->width*depth_msg_->height; i++){
-    data[i] = rand() % 500; // Distance between 0 and 0.5m
+    data[i] = uniform_int(rng);
   }
 
   // Convert
