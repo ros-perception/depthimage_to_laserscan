@@ -60,17 +60,16 @@ DepthImageToLaserScanROS::DepthImageToLaserScanROS(const rclcpp::NodeOptions & o
   scan_pub_ = this->create_publisher<sensor_msgs::msg::LaserScan>("scan", qos);
 
   float scan_time = this->declare_parameter("scan_time", 0.033);
-  dtl_.set_scan_time(scan_time);
 
   float range_min = this->declare_parameter("range_min", 0.45);
   float range_max  = this->declare_parameter("range_max", 10.0);
-  dtl_.set_range_limits(range_min, range_max);
 
   int scan_height = this->declare_parameter("scan_height", 1);
-  dtl_.set_scan_height(scan_height);
 
   std::string output_frame = this->declare_parameter("output_frame", "camera_depth_frame");
-  dtl_.set_output_frame(output_frame);
+
+  dtl_ = std::make_unique<depthimage_to_laserscan::DepthImageToLaserScan>(scan_time, range_min,
+                                                                          range_max, scan_height, output_frame);
 }
 
 DepthImageToLaserScanROS::~DepthImageToLaserScanROS(){
@@ -87,10 +86,10 @@ void DepthImageToLaserScanROS::depthCb(const sensor_msgs::msg::Image::SharedPtr 
   }
 
   try{
-    sensor_msgs::msg::LaserScan::UniquePtr scan_msg = dtl_.convert_msg(image, cam_info_);
+    sensor_msgs::msg::LaserScan::UniquePtr scan_msg = dtl_->convert_msg(image, cam_info_);
     scan_pub_->publish(std::move(scan_msg));
   }
-  catch (std::runtime_error& e){
+  catch (const std::runtime_error& e){
     RCLCPP_ERROR(get_logger(), "Could not convert depth image to laserscan: %s", e.what());
   }
 }
