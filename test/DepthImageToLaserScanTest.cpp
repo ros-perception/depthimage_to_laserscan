@@ -235,7 +235,7 @@ TEST(ConvertTest, testPositiveInf)
   for(size_t i = 0; i < scan_msg->ranges.size(); i++){
     if(std::isfinite(scan_msg->ranges[i])){ // NaNs are acceptable.
       ADD_FAILURE() << "Non-finite value produced from postive infniity test.";
-    } else if(isnan(scan_msg->ranges[i])){
+    } else if(std::isnan(scan_msg->ranges[i])){
       nan_count++;
     } else if(scan_msg->ranges[i] < 0){
       ADD_FAILURE() << "Negative value produced from postive infinity test.";
@@ -267,7 +267,7 @@ TEST(ConvertTest, testNegativeInf)
   for(size_t i = 0; i < scan_msg->ranges.size(); i++){
     if(std::isfinite(scan_msg->ranges[i])){ // NaNs are acceptable.
       ADD_FAILURE() << "Non-finite value produced from postive infniity test.";
-    } else if(isnan(scan_msg->ranges[i])){
+    } else if(std::isnan(scan_msg->ranges[i])){
       nan_count++;
     } else if(scan_msg->ranges[i] > 0){
       ADD_FAILURE() << "Postive value produced from negative infinity test.";
