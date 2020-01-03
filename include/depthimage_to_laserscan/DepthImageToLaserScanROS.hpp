@@ -49,7 +49,7 @@ namespace depthimage_to_laserscan
   public:
     explicit DepthImageToLaserScanROS(const rclcpp::NodeOptions & options);
 
-    ~DepthImageToLaserScanROS();
+    ~DepthImageToLaserScanROS() override;
 
   private:
     /**
@@ -73,6 +73,6 @@ namespace depthimage_to_laserscan
 
     depthimage_to_laserscan::DepthImageToLaserScan dtl_; ///< Instance of the DepthImageToLaserScan conversion class.
   };
-} // depthimage_to_laserscan
+}  // namespace depthimage_to_laserscan
 
 #endif
