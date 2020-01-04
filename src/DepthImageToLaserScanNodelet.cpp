@@ -27,7 +27,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-/* 
+/*
  * Author: Chad Rockey
  */
 
@@ -50,7 +50,7 @@ private:
   {
     dtl.reset(new DepthImageToLaserScanROS(getNodeHandle(), getPrivateNodeHandle()));
   };
-  
+
   boost::shared_ptr<DepthImageToLaserScanROS> dtl;
 };
 
