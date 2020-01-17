@@ -115,8 +115,12 @@ sensor_msgs::LaserScanPtr DepthImageToLaserScan::convert_msg(const sensor_msgs::
   scan_msg->range_min = range_min_;
   scan_msg->range_max = range_max_;
   
+  double center_row = cam_model_.cy()*2*scan_offset_;
+  double bottom_row = center_row - scan_height_/2;
+  double top_row = center_row + scan_height_/2;
+
   // Check scan_height vs image_height
-  if(scan_height_/2 > cam_model_.cy() || scan_height_/2 > depth_msg->height - cam_model_.cy()){
+  if(bottom_row < 0 || top_row >= depth_msg->height){
     std::stringstream ss;
     ss << "scan_height ( " << scan_height_ << " pixels) is too large for the image height.";
     throw std::runtime_error(ss.str());
@@ -128,11 +132,11 @@ sensor_msgs::LaserScanPtr DepthImageToLaserScan::convert_msg(const sensor_msgs::
   
   if (depth_msg->encoding == sensor_msgs::image_encodings::TYPE_16UC1)
   {
-    convert<uint16_t>(depth_msg, cam_model_, scan_msg, scan_height_);
+    convert<uint16_t>(depth_msg, cam_model_, scan_msg, scan_height_, scan_offset_);
   }
   else if (depth_msg->encoding == sensor_msgs::image_encodings::TYPE_32FC1)
   {
-    convert<float>(depth_msg, cam_model_, scan_msg, scan_height_);
+    convert<float>(depth_msg, cam_model_, scan_msg, scan_height_, scan_offset_);
   }
   else
   {
@@ -155,6 +159,10 @@ void DepthImageToLaserScan::set_range_limits(const float range_min, const float 
 
 void DepthImageToLaserScan::set_scan_height(const int scan_height){
   scan_height_ = scan_height;
+}
+
+void DepthImageToLaserScan::set_scan_offset(const float scan_offset){
+  scan_offset_ = scan_offset;
 }
 
 void DepthImageToLaserScan::set_output_frame(const std::string output_frame_id){

@@ -101,6 +101,17 @@ namespace depthimage_to_laserscan
      * 
      */
     void set_scan_height(const int scan_height);
+
+    /**
+     * Sets the center position of the output LaserScan.
+     * 
+     * scan_offset is the number between 0 and 1 that will be used to set center position in the output. 0 value corresponds
+     * to the bottom of the image while value 1 corresponds to the height of the image. 
+     * 
+     * @param scan_offset Center position of the LaserScan.
+     * 
+     */
+    void set_scan_offset(const float scan_offset);    
     
     /**
      * Sets the frame_id for the output LaserScan.
@@ -164,11 +175,12 @@ namespace depthimage_to_laserscan
     * @param cam_model The image_geometry camera model for this image.
     * @param scan_msg The output LaserScan.
     * @param scan_height The number of vertical pixels to feed into each angular_measurement.
+    * @param scan_offset The center of the output LaserScan.
     * 
     */
     template<typename T>
     void convert(const sensor_msgs::ImageConstPtr& depth_msg, const image_geometry::PinholeCameraModel& cam_model, 
-		 const sensor_msgs::LaserScanPtr& scan_msg, const int& scan_height) const{
+		 const sensor_msgs::LaserScanPtr& scan_msg, const int& scan_height, const float& scan_offset) const{
       // Use correct principal point from calibration
       float center_x = cam_model.cx();
       float center_y = cam_model.cy();
@@ -181,7 +193,7 @@ namespace depthimage_to_laserscan
       const T* depth_row = reinterpret_cast<const T*>(&depth_msg->data[0]);
       int row_step = depth_msg->step / sizeof(T);
 
-      int offset = (int)(cam_model.cy()-scan_height/2);
+      int offset = (int)((cam_model.cy()*2*scan_offset)-scan_height/2);
       depth_row += offset*row_step; // Offset to center of image
 
       for(int v = offset; v < offset+scan_height_; v++, depth_row += row_step){
@@ -216,6 +228,7 @@ namespace depthimage_to_laserscan
     float range_min_; ///< Stores the current minimum range to use.
     float range_max_; ///< Stores the current maximum range to use.
     int scan_height_; ///< Number of pixel rows to use when producing a laserscan from an area.
+    float scan_offset_; ///< Number of row being set as center of a laserscan.
     std::string output_frame_id_; ///< Output frame_id for each laserscan.  This is likely NOT the camera's frame_id.
   };
   
