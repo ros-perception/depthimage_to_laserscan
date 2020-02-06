@@ -42,7 +42,13 @@ DepthImageToLaserScan::~DepthImageToLaserScan(){
 }
 
 double DepthImageToLaserScan::magnitude_of_ray(const cv::Point3d& ray) const{
-  return sqrt(pow(ray.x, 2.0) + pow(ray.y, 2.0) + pow(ray.z, 2.0));
+  //return sqrt(pow(ray.x, 2.0) + pow(ray.y, 2.0) + pow(ray.z, 2.0));
+  // Optimizing compiler likes this much more
+  return sqrt(ray.x*ray.x + ray.y*ray.y + ray.z*ray.z);
+}
+
+float DepthImageToLaserScan::magnitude_of_ray_f(const cv::Point3f& ray) const{
+  return sqrtf(ray.x*ray.x + ray.y*ray.y + ray.z*ray.z);
 }
 
 double DepthImageToLaserScan::angle_between_rays(const cv::Point3d& ray1, const cv::Point3d& ray2) const{
@@ -50,6 +56,15 @@ double DepthImageToLaserScan::angle_between_rays(const cv::Point3d& ray1, const 
   double magnitude1 = magnitude_of_ray(ray1);
   double magnitude2 = magnitude_of_ray(ray2);;
   return acos(dot_product / (magnitude1 * magnitude2));
+}
+
+
+
+float DepthImageToLaserScan::angle_between_rays_f(const cv::Point3f& ray1, const cv::Point3f& ray2) const{
+  float dot_product = ray1.x*ray2.x + ray1.y*ray2.y + ray1.z*ray2.z;
+  float magnitude1 = magnitude_of_ray_f(ray1);
+  float magnitude2 = magnitude_of_ray_f(ray2);
+  return acosf(dot_product / (magnitude1 * magnitude2));
 }
 
 bool DepthImageToLaserScan::use_point(const float new_value, const float old_value, const float range_min, const float range_max) const{  
@@ -81,7 +96,24 @@ bool DepthImageToLaserScan::use_point(const float new_value, const float old_val
 }
 
 sensor_msgs::LaserScanPtr DepthImageToLaserScan::convert_msg(const sensor_msgs::ImageConstPtr& depth_msg,
-	      const sensor_msgs::CameraInfoConstPtr& info_msg){
+							     const sensor_msgs::CameraInfoConstPtr& info_msg)
+{
+  sensor_msgs::LaserScanPtr scan_msg(new sensor_msgs::LaserScan());
+  convert_msg(depth_msg, info_msg, scan_msg);
+  return scan_msg;
+}
+
+sensor_msgs::LaserScanPtr DepthImageToLaserScan::convert_msg_f(const sensor_msgs::ImageConstPtr& depth_msg,
+					const sensor_msgs::CameraInfoConstPtr& info_msg)
+{
+  sensor_msgs::LaserScanPtr scan_msg(new sensor_msgs::LaserScan());
+  convert_msg_f(depth_msg, info_msg, scan_msg);
+  return scan_msg;
+}
+
+bool DepthImageToLaserScan::convert_msg(const sensor_msgs::ImageConstPtr& depth_msg,
+	      const sensor_msgs::CameraInfoConstPtr& info_msg, sensor_msgs::LaserScanPtr & scan_msg)
+{
   // Set camera model
   cam_model_.fromCameraInfo(info_msg);
   
@@ -102,7 +134,6 @@ sensor_msgs::LaserScanPtr DepthImageToLaserScan::convert_msg(const sensor_msgs::
   double angle_min = -angle_between_rays(center_ray, right_ray); // Negative because the laserscan message expects an opposite rotation of that from the depth image
   
   // Fill in laserscan message
-  sensor_msgs::LaserScanPtr scan_msg(new sensor_msgs::LaserScan());
   scan_msg->header = depth_msg->header;
   if(output_frame_id_.length() > 0){
     scan_msg->header.frame_id = output_frame_id_;
@@ -141,7 +172,70 @@ sensor_msgs::LaserScanPtr DepthImageToLaserScan::convert_msg(const sensor_msgs::
     throw std::runtime_error(ss.str());
   }
   
-  return scan_msg;
+  return true;
+}
+
+bool DepthImageToLaserScan::convert_msg_f(const sensor_msgs::ImageConstPtr& depth_msg,
+	      const sensor_msgs::CameraInfoConstPtr& info_msg, sensor_msgs::LaserScanPtr & scan_msg){
+  // Set camera model
+  cam_model_.fromCameraInfo(info_msg);
+
+  // Calculate angle_min and angle_max by measuring angles between the left ray, right ray, and optical center ray
+  cv::Point2f raw_pixel_left(0, cam_model_.cy());
+  cv::Point2f rect_pixel_left = cam_model_.rectifyPoint(raw_pixel_left);
+  cv::Point3f left_ray = cam_model_.projectPixelTo3dRay(rect_pixel_left);
+
+  cv::Point2f raw_pixel_right(depth_msg->width-1, cam_model_.cy());
+  cv::Point2f rect_pixel_right = cam_model_.rectifyPoint(raw_pixel_right);
+  cv::Point3f right_ray = cam_model_.projectPixelTo3dRay(rect_pixel_right);
+
+  cv::Point2f raw_pixel_center(cam_model_.cx(), cam_model_.cy());
+  cv::Point2f rect_pixel_center = cam_model_.rectifyPoint(raw_pixel_center);
+  cv::Point3f center_ray = cam_model_.projectPixelTo3dRay(rect_pixel_center);
+
+  float angle_max = angle_between_rays_f(left_ray, center_ray);
+  float angle_min = -angle_between_rays_f(center_ray, right_ray); // Negative because the laserscan message expects an opposite rotation of that from the depth image
+
+  // Fill in laserscan message
+  scan_msg->header = depth_msg->header;
+  if(output_frame_id_.length() > 0){
+    scan_msg->header.frame_id = output_frame_id_;
+  }
+  scan_msg->angle_min = angle_min;
+  scan_msg->angle_max = angle_max;
+  scan_msg->angle_increment = (scan_msg->angle_max - scan_msg->angle_min) / (depth_msg->width - 1);
+  scan_msg->time_increment = 0.0;
+  scan_msg->scan_time = scan_time_;
+  scan_msg->range_min = range_min_;
+  scan_msg->range_max = range_max_;
+
+  // Check scan_height vs image_height
+  if(scan_height_/2 > cam_model_.cy() || scan_height_/2 > depth_msg->height - cam_model_.cy()){
+    std::stringstream ss;
+    ss << "scan_height ( " << scan_height_ << " pixels) is too large for the image height.";
+    throw std::runtime_error(ss.str());
+  }
+
+  // Calculate and fill the ranges
+  uint32_t ranges_size = depth_msg->width;
+  scan_msg->ranges.assign(ranges_size, std::numeric_limits<float>::quiet_NaN());
+
+  if (depth_msg->encoding == sensor_msgs::image_encodings::TYPE_16UC1)
+  {
+	convert_f<uint16_t>(depth_msg, cam_model_, scan_msg, scan_height_);
+  }
+  else if (depth_msg->encoding == sensor_msgs::image_encodings::TYPE_32FC1)
+  {
+	convert_f<float>(depth_msg, cam_model_, scan_msg, scan_height_);
+  }
+  else
+  {
+    std::stringstream ss;
+    ss << "Depth image has unsupported encoding: " << depth_msg->encoding;
+    throw std::runtime_error(ss.str());
+  }
+
+  return true;
 }
 
 void DepthImageToLaserScan::set_scan_time(const float scan_time){

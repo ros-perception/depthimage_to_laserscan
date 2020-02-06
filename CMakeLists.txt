@@ -30,6 +30,9 @@ target_link_libraries(DepthImageToLaserScanNodelet DepthImageToLaserScanROS ${ca
 add_executable(depthimage_to_laserscan src/depthimage_to_laserscan.cpp)
 target_link_libraries(depthimage_to_laserscan DepthImageToLaserScanROS ${catkin_LIBRARIES})
 
+add_executable(depthimage_to_laserscan_test src/DepthImageToLaserScanROS_test.cpp)
+target_link_libraries(depthimage_to_laserscan_test DepthImageToLaserScan ${catkin_LIBRARIES})
+
 if(CATKIN_ENABLE_TESTING)
   # Test the library
   catkin_add_gtest(libtest test/DepthImageToLaserScanTest.cpp)

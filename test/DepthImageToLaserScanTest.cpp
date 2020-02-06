@@ -188,6 +188,63 @@ TEST(ConvertTest, testRandom)
   }
 }
 
+// Test a randomly filled image and ensure all values are < range_min
+// (range_max is currently violated to fill the messages)
+TEST(ConvertTest, testPerformance)
+{
+  srand ( 8675309 ); // Set seed for repeatable tests
+
+  uint16_t* data = reinterpret_cast<uint16_t*>(&depth_msg_->data[0]);
+  for(size_t i = 0; i < depth_msg_->width*depth_msg_->height; i++){
+    data[i] = rand() % 500; // Distance between 0 and 0.5m
+  }
+
+  dtl_.set_scan_height(240);
+
+  int iterations = 1000;
+  sensor_msgs::LaserScanPtr scan_base(new sensor_msgs::LaserScan()), scan_fast(new sensor_msgs::LaserScan());
+
+  clock_t time_start;
+  time_start = clock();
+
+  for(int i = 0; i < iterations; i++)
+  {
+	  scan_base->ranges.clear();
+	  dtl_.convert_msg(depth_msg_, info_msg_, scan_base);
+  }
+
+  clock_t time_base = clock();
+  for(int i = 0; i < iterations; i++)
+  {
+	scan_fast->ranges.clear();
+	dtl_.convert_msg_f(depth_msg_, info_msg_, scan_fast);
+  }
+
+  clock_t time_end = clock();
+
+  int base_ms = 1000*double(time_base - time_start) / CLOCKS_PER_SEC;
+  int fast_ms = 1000*double(time_end - time_base) / CLOCKS_PER_SEC;
+
+  ASSERT_EQ(scan_base->ranges.size(), scan_fast->ranges.size());
+  int size = scan_base->ranges.size();
+  EXPECT_GT(size, 0);
+  double error = 0;
+  // Make sure all values are greater than or equal to range_min and less than or equal to range_max
+  for(size_t i = 0; i < size; i++){
+    if(std::isfinite(scan_base->ranges[i])){
+    	float delta = scan_base->ranges[i] - scan_fast->ranges[i];
+    	error += fabs(delta);
+      //ASSERT_GE(, scan_msg->range_min);
+      //ASSERT_LE(scan_msg->ranges[i], scan_msg->range_max);
+    }
+  }
+
+  if(size > 0)
+	  error /= size;
+
+  printf("Base conversion = % 4dms, fast conversion=% 4dms, total range error =%f\n", base_ms, fast_ms, error);
+}
+
 // Test to preserve NaN
 TEST(ConvertTest, testNaN)
 {
