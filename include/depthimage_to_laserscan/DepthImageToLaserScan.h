@@ -177,28 +177,34 @@ namespace depthimage_to_laserscan
       const double unit_scaling = depthimage_to_laserscan::DepthTraits<T>::toMeters( T(1) );
       const float constant_x = unit_scaling / cam_model.fx();
 
-      const T* depth_row = reinterpret_cast<const T*>(&depth_msg->data[0]);
+      const T* depth_row0 = reinterpret_cast<const T*>(&depth_msg->data[0]);
       const int row_step = depth_msg->step / sizeof(T);
 
       const int offset = (int)(center_y - scan_height/2);
-      depth_row += offset*row_step; // Offset to center of image
 
-      for(int v = offset; v < offset+scan_height_; ++v, depth_row += row_step){
-        for (int u = 0; u < (int)depth_msg->width; ++u) // Loop over each pixel in row
-        {
+      const int depth_row_offset_start = offset*row_step;
+      const int depth_row_offset_end = (offset+scan_height_)*row_step;
+
+      double z_coef = depthimage_to_laserscan::DepthTraits<T>::toMeters(1.0);
+
+      for (int u = 0; u < (int)depth_msg->width; ++u) {
+        const double th = -atan2((double)(u - center_x) * constant_x, unit_scaling); // Atan2(x, z), but depth divides out
+        const int index = (th - scan_msg->angle_min) / scan_msg->angle_increment;
+
+        double x_coef = (u - center_x) * constant_x;
+        double r_coef = hypot(x_coef, z_coef);
+
+        for(const T* depth_row = depth_row0 + depth_row_offset_start;
+            depth_row < depth_row0 + depth_row_offset_end;
+            depth_row += row_step) {
+
           const T depth = depth_row[u];
 
-          double r = depth; // Assign to pass through NaNs and Infs
-          const double th = -atan2((double)(u - center_x) * constant_x, unit_scaling); // Atan2(x, z), but depth divides out
-          const int index = (th - scan_msg->angle_min) / scan_msg->angle_increment;
+          double r = depth;
 
           if (depthimage_to_laserscan::DepthTraits<T>::valid(depth)){ // Not NaN or Inf
-            // Calculate in XYZ
-            double x = (u - center_x) * depth * constant_x;
-            double z = depthimage_to_laserscan::DepthTraits<T>::toMeters(depth);
-
             // Calculate actual distance
-            r = hypot(x, z);
+            r = r_coef * depth;
           }
 
           // Determine if this point should be used.
