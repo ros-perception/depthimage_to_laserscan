@@ -47,17 +47,20 @@
 namespace depthimage_to_laserscan{
 
 DepthImageToLaserScanROS::DepthImageToLaserScanROS(const rclcpp::NodeOptions & options): rclcpp::Node("depthimage_to_laserscan", options){
-  auto qos = rclcpp:: SystemDefaultsQoS();
-  cam_info_sub_ = this->create_subscription<sensor_msgs::msg::CameraInfo>("depth_camera_info", qos,
+  std::string depth_camera_info_topic = this->declare_parameter("depth_camera_info_topic", "depth_camera_info");
+  auto qos = rclcpp:: SensorDataQoS();
+  cam_info_sub_ = this->create_subscription<sensor_msgs::msg::CameraInfo>(depth_camera_info_topic, qos,
       std::bind(
         &DepthImageToLaserScanROS::infoCb, this,
         std::placeholders::_1));
 
+  std::string depth_topic = this->declare_parameter("depth_topic", "depth");
   depth_image_sub_ =
-    this->create_subscription<sensor_msgs::msg::Image>("depth", qos,
+    this->create_subscription<sensor_msgs::msg::Image>(depth_topic, qos,
       std::bind(&DepthImageToLaserScanROS::depthCb, this, std::placeholders::_1));
 
-  scan_pub_ = this->create_publisher<sensor_msgs::msg::LaserScan>("scan", qos);
+  std::string scan_topic = this->declare_parameter("scan_topic", "scan");
+  scan_pub_ = this->create_publisher<sensor_msgs::msg::LaserScan>(scan_topic, qos);
 
   float scan_time = this->declare_parameter("scan_time", 0.033);
   dtl_.set_scan_time(scan_time);
