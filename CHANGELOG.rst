@@ -2,6 +2,12 @@
 Changelog for package depthimage_to_laserscan
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Make DepthImageToLaserScan more RAII.
+* Fixes pointed out by clang-tidy.
+* Contributors: Chris Lalancette
+
 2.2.5 (2019-11-13)
 ------------------
 * Update the README.md to describe the topics and parameters.
