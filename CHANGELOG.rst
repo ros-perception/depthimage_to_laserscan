@@ -2,8 +2,8 @@
 Changelog for package depthimage_to_laserscan
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.3.1 (2021-04-08)
+------------------
 * Cleanup the CMakeLists.txt (`#51 <https://github.com/ros-perception/depthimage_to_laserscan/issues/51>`_)
 * Contributors: Chris Lalancette
 
