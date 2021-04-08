@@ -2,8 +2,13 @@ cmake_minimum_required(VERSION 3.5)
 project(depthimage_to_laserscan)
 include(GenerateExportHeader)
 
-if(NOT WIN32)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -Wall -Wextra -Wpedantic")
+# Default to C++14
+if(NOT CMAKE_CXX_STANDARD)
+  set(CMAKE_CXX_STANDARD 14)
+endif()
+
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
 find_package(ament_cmake_ros REQUIRED)
@@ -14,8 +19,6 @@ find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(sensor_msgs REQUIRED)
 
-include_directories(include)
-
 add_library(DepthImageToLaserScan
   src/DepthImageToLaserScan.cpp
 )
@@ -25,9 +28,13 @@ ament_target_dependencies(DepthImageToLaserScan
   "sensor_msgs"
 )
 generate_export_header(DepthImageToLaserScan EXPORT_FILE_NAME ${PROJECT_NAME}/DepthImageToLaserScan_export.h)
-target_include_directories(DepthImageToLaserScan PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>")
+target_include_directories(DepthImageToLaserScan PUBLIC
+  "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>"
+  "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
+  "$<INSTALL_INTERFACE:include>"
+)
 
-add_library(DepthImageToLaserScanROS SHARED
+add_library(DepthImageToLaserScanROS
   src/DepthImageToLaserScanROS.cpp
 )
 ament_target_dependencies(DepthImageToLaserScanROS
@@ -36,7 +43,11 @@ ament_target_dependencies(DepthImageToLaserScanROS
 )
 target_link_libraries(DepthImageToLaserScanROS DepthImageToLaserScan)
 generate_export_header(DepthImageToLaserScanROS EXPORT_FILE_NAME ${PROJECT_NAME}/DepthImageToLaserScanROS_export.h)
-target_include_directories(DepthImageToLaserScanROS PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>")
+target_include_directories(DepthImageToLaserScanROS PUBLIC
+  "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>"
+  "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
+  "$<INSTALL_INTERFACE:include>"
+)
 
 rclcpp_components_register_nodes(DepthImageToLaserScanROS
   "depthimage_to_laserscan::DepthImageToLaserScanROS")
