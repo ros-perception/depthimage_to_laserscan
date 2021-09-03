@@ -16,7 +16,7 @@
 
 
 		<!-- PARAMETERS: -->
-		<!-- These are the default values. You can remove the lines you are not using. More information on the ROS wiki page --> 
+		<!-- These are the default values. --> 
 		<param name="scan_height"		type="int"	value="1"/> <!-- default: 1 pixel. Number of pixel rows used to generate laser scan. -->
 		<param name="scan_time"			type="double"	value="0.033"/> <!-- default:0.033, 30 FPS . Time between scans. -->
 		<param name="range_min"			type="double"	value="0.45"/> <!--default:0.45m. Ranges less than this are considered -Inf. -->
