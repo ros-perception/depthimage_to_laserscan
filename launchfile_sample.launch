@@ -12,7 +12,7 @@
 		<remap from="image"			to="/camera/aligned_depth_to_color/image_raw"/> <!-- change here for your camera depth topic name. Default: "/camera/depth/image_raw" -->
 
 		<remap from="camera_info"		to="/camera/color/camera_info"/> 
-		<!-- the remap for camera_info can present issues, and by default uses the same path as the one given to the image topic. Default: "<path_to_image_topic>/camera_info>" -->
+		<!-- the remap for camera_info by default uses the same path as the one given to the image topic. Default: "<path_to_image_topic>/camera_info>" -->
 
 
 		<!-- PARAMETERS: -->
