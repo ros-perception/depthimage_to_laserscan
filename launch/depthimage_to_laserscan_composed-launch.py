@@ -30,15 +30,15 @@ def generate_launch_description():
         params = yaml.safe_load(f)['depthimage_to_laserscan']['ros__parameters']
 
     container = ComposableNodeContainer(
-        node_name='depthimage_to_laserscan_container',
-        node_namespace='',
+        name='depthimage_to_laserscan_container',
+        namespace='',
         package='rclcpp_components',
-        node_executable='component_container',
+        executable='component_container',
         composable_node_descriptions=[
             ComposableNode(
                 package='depthimage_to_laserscan',
-                node_plugin='depthimage_to_laserscan::DepthImageToLaserScanROS',
-                node_name='depthimage_to_laserscan',
+                plugin='depthimage_to_laserscan::DepthImageToLaserScanROS',
+                name='depthimage_to_laserscan',
                 parameters=[params]),
         ],
         output='both',
