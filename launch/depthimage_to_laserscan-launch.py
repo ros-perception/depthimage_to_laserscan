@@ -26,8 +26,8 @@ def generate_launch_description():
     return LaunchDescription([
         Node(
             package='depthimage_to_laserscan',
-            node_executable='depthimage_to_laserscan_node',
-            node_name='depthimage_to_laserscan_node',
+            executable='depthimage_to_laserscan_node',
+            name='depthimage_to_laserscan_node',
             remappings=[('depth','/camera/depth/image_rect_raw'),
                         ('depth_camera_info', '/camera/depth/camera_info')],
             parameters=[param_config])
