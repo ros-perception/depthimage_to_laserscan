@@ -89,6 +89,10 @@ if(BUILD_TESTING)
   target_link_libraries(${PROJECT_NAME}-test DepthImageToLaserScan)
 endif()
 
+# TODO(sloretz) stop exporting old-style CMake variables in the future
+ament_export_include_directories("include/${PROJECT_NAME}")
+ament_export_libraries(DepthImageToLaserScan DepthImageToLaserScanROS)
+
 ament_export_targets(export_${PROJECT_NAME})
 ament_export_dependencies(rclcpp)
 ament_export_dependencies(image_geometry)
