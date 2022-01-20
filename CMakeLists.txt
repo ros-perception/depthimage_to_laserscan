@@ -40,7 +40,6 @@ add_library(DepthImageToLaserScanROS
 target_link_libraries(DepthImageToLaserScanROS PUBLIC
   rclcpp::rclcpp)
 target_link_libraries(DepthImageToLaserScanROS PRIVATE
-  rcutils::rcutils
   rclcpp_components::component)
 
 target_link_libraries(DepthImageToLaserScanROS PUBLIC
