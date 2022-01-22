@@ -14,7 +14,7 @@ endif()
 find_package(ament_cmake_ros REQUIRED)
 
 find_package(image_geometry REQUIRED)
-find_package(OpenCV REQUIRED)
+find_package(OpenCV REQUIRED COMPONENTS core)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(sensor_msgs REQUIRED)
@@ -22,32 +22,29 @@ find_package(sensor_msgs REQUIRED)
 add_library(DepthImageToLaserScan
   src/DepthImageToLaserScan.cpp
 )
-ament_target_dependencies(DepthImageToLaserScan
-  "image_geometry"
-  "OpenCV"
-  "sensor_msgs"
-)
+target_link_libraries(DepthImageToLaserScan PUBLIC
+  image_geometry::image_geometry
+  opencv_core
+  ${sensor_msgs_TARGETS})
+
 generate_export_header(DepthImageToLaserScan EXPORT_FILE_NAME ${PROJECT_NAME}/DepthImageToLaserScan_export.h)
 target_include_directories(DepthImageToLaserScan PUBLIC
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>"
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
-  "$<INSTALL_INTERFACE:include>"
+  "$<INSTALL_INTERFACE:include/${PROJECT_NAME}>"
 )
 
 add_library(DepthImageToLaserScanROS
   src/DepthImageToLaserScanROS.cpp
 )
-ament_target_dependencies(DepthImageToLaserScanROS
-  "rclcpp"
-  "rclcpp_components"
-)
-target_link_libraries(DepthImageToLaserScanROS DepthImageToLaserScan)
+target_link_libraries(DepthImageToLaserScanROS PUBLIC
+  rclcpp::rclcpp)
+target_link_libraries(DepthImageToLaserScanROS PRIVATE
+  rclcpp_components::component)
+
+target_link_libraries(DepthImageToLaserScanROS PUBLIC
+  DepthImageToLaserScan)
 generate_export_header(DepthImageToLaserScanROS EXPORT_FILE_NAME ${PROJECT_NAME}/DepthImageToLaserScanROS_export.h)
-target_include_directories(DepthImageToLaserScanROS PUBLIC
-  "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>"
-  "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
-  "$<INSTALL_INTERFACE:include>"
-)
 
 rclcpp_components_register_nodes(DepthImageToLaserScanROS
   "depthimage_to_laserscan::DepthImageToLaserScanROS")
@@ -60,9 +57,7 @@ target_link_libraries(depthimage_to_laserscan_node
   DepthImageToLaserScanROS
 )
 
-install(DIRECTORY include/
-  DESTINATION include
-)
+install(DIRECTORY include/ DESTINATION include/${PROJECT_NAME})
 
 install(DIRECTORY
   launch
@@ -71,6 +66,7 @@ install(DIRECTORY
 )
 
 install(TARGETS DepthImageToLaserScan DepthImageToLaserScanROS
+  EXPORT export_${PROJECT_NAME}
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin
@@ -83,7 +79,7 @@ install(TARGETS depthimage_to_laserscan_node
 install(FILES
   ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/DepthImageToLaserScan_export.h
   ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/DepthImageToLaserScanROS_export.h
-  DESTINATION include/${PROJECT_NAME})
+  DESTINATION include/${PROJECT_NAME}/${PROJECT_NAME})
 
 if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
@@ -92,6 +88,13 @@ if(BUILD_TESTING)
   target_link_libraries(${PROJECT_NAME}-test DepthImageToLaserScan)
 endif()
 
-ament_export_include_directories(include)
+# TODO(sloretz) stop exporting old-style CMake variables in the future
+ament_export_include_directories("include/${PROJECT_NAME}")
 ament_export_libraries(DepthImageToLaserScan DepthImageToLaserScanROS)
+
+ament_export_targets(export_${PROJECT_NAME})
+ament_export_dependencies(rclcpp)
+ament_export_dependencies(image_geometry)
+ament_export_dependencies(OpenCV)
+ament_export_dependencies(sensor_msgs)
 ament_package()
