@@ -2,6 +2,12 @@
 Changelog for package depthimage_to_laserscan
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Install includes to ${PROJECT_NAME} folder and use modern CMake (`#58 <https://github.com/ros-perception/depthimage_to_laserscan/issues/58>`_)
+* Fix the launch files to work with Rolling. (`#59 <https://github.com/ros-perception/depthimage_to_laserscan/issues/59>`_)
+* Contributors: Chris Lalancette, Shane Loretz
+
 2.3.1 (2021-04-08)
 ------------------
 * Cleanup the CMakeLists.txt (`#51 <https://github.com/ros-perception/depthimage_to_laserscan/issues/51>`_)
