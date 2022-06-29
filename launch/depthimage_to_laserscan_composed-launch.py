@@ -15,16 +15,19 @@
 # /* Author: Gary Liu */
 
 import os
-import yaml
 
 from ament_index_python.packages import get_package_share_directory
+
 from launch import LaunchDescription
 from launch_ros.actions import ComposableNodeContainer
 from launch_ros.descriptions import ComposableNode
 
+import yaml
+
 
 def generate_launch_description():
-    param_config = os.path.join(get_package_share_directory('depthimage_to_laserscan'), 'cfg', 'param.yaml')
+    param_config = os.path.join(
+        get_package_share_directory('depthimage_to_laserscan'), 'cfg', 'param.yaml')
 
     with open(param_config, 'r') as f:
         params = yaml.safe_load(f)['depthimage_to_laserscan']['ros__parameters']
