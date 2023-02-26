@@ -153,7 +153,7 @@ sensor_msgs::msg::LaserScan::UniquePtr DepthImageToLaserScan::convert_msg(
 
   // Calculate and fill the ranges
   uint32_t ranges_size = depth_msg->width;
-  scan_msg->ranges.assign(ranges_size, std::numeric_limits<float>::quiet_NaN());
+  scan_msg->ranges.assign(ranges_size, std::numeric_limits<float>::infinity());
 
   if (depth_msg->encoding == sensor_msgs::image_encodings::TYPE_16UC1) {
     convert<uint16_t>(depth_msg, cam_model_, scan_msg, scan_height_);
