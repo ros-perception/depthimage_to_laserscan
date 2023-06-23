@@ -38,7 +38,11 @@
 
 #include "depthimage_to_laserscan/DepthImageToLaserScan_export.h"
 #include "depthimage_to_laserscan/depth_traits.hpp"
+#ifdef LEGACY_PINHOLE_CAMERA_INCLUDE
 #include "image_geometry/pinhole_camera_model.h"
+#else
+#include "image_geometry/pinhole_camera_model.hpp"
+#endif
 #include <opencv2/core/core.hpp>
 #include <sensor_msgs/msg/camera_info.hpp>
 #include <sensor_msgs/msg/image.hpp>

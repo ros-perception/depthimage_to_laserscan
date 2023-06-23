@@ -13,6 +13,9 @@
 
   <buildtool_depend>ament_cmake_ros</buildtool_depend>
 
+  <!-- Used to determine which ROS version is available at build time -->
+  <build_depend>ros_environment</build_depend>
+
   <depend>image_geometry</depend>
   <depend>libopencv-dev</depend>
   <depend>rclcpp</depend>
