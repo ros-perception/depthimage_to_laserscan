@@ -11,8 +11,8 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
-message(STATUS "CHRIS: ROS_DISTRO: $ENV{ROS_DISTRO}")
 if(DEFINED ENV{ROS_DISTRO})
+  # This can be removed once we drop support for Humble
   if("$ENV{ROS_DISTRO}" STREQUAL "humble")
     add_definitions(-DLEGACY_PINHOLE_CAMERA_INCLUDE=1)
   endif()
