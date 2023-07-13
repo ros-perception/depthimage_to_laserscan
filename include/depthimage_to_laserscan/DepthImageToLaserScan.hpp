@@ -38,7 +38,14 @@
 
 #include "depthimage_to_laserscan/DepthImageToLaserScan_export.h"
 #include "depthimage_to_laserscan/depth_traits.hpp"
+#if __has_include("image_geometry/pinhole_camera_model.hpp")
+#include "image_geometry/pinhole_camera_model.hpp"
+#else
+// This header was deprecated as of https://github.com/ros-perception/vision_opencv/pull/448
+// (for Iron), and will be completely removed for J-Turtle.  However, we still need it in
+// Humble, since the .hpp doesn't exist there.
 #include "image_geometry/pinhole_camera_model.h"
+#endif
 #include <opencv2/core/core.hpp>
 #include <sensor_msgs/msg/camera_info.hpp>
 #include <sensor_msgs/msg/image.hpp>
