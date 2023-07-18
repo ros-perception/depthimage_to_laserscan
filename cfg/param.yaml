@@ -1,4 +1,4 @@
-depthimage_to_laserscan_node:
+depthimage_to_laserscan:
   ros__parameters:
     scan_time: 0.033
     range_min: 0.45
