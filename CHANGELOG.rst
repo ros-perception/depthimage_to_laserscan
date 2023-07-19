@@ -2,6 +2,13 @@
 Changelog for package depthimage_to_laserscan
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* fix node name (`#71 <https://github.com/ros-perception/depthimage_to_laserscan/issues/71>`_)
+* Update the code to use a non-deprecated header. (`#72 <https://github.com/ros-perception/depthimage_to_laserscan/issues/72>`_)
+* Fix the style throughout the codebase to conform to ROS 2 style. (`#63 <https://github.com/ros-perception/depthimage_to_laserscan/issues/63>`_)
+* Contributors: Chris Lalancette, Josef
+
 2.5.0 (2022-01-22)
 ------------------
 * Install includes to ${PROJECT_NAME} folder and use modern CMake (`#58 <https://github.com/ros-perception/depthimage_to_laserscan/issues/58>`_)
