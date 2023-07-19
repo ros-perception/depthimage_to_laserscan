@@ -2,8 +2,8 @@
 Changelog for package depthimage_to_laserscan
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.5.1 (2023-07-19)
+------------------
 * fix node name (`#71 <https://github.com/ros-perception/depthimage_to_laserscan/issues/71>`_)
 * Update the code to use a non-deprecated header. (`#72 <https://github.com/ros-perception/depthimage_to_laserscan/issues/72>`_)
 * Fix the style throughout the codebase to conform to ROS 2 style. (`#63 <https://github.com/ros-perception/depthimage_to_laserscan/issues/63>`_)
