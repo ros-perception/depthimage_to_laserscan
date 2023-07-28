@@ -47,7 +47,11 @@
 namespace depthimage_to_laserscan{
 
 DepthImageToLaserScanROS::DepthImageToLaserScanROS(const rclcpp::NodeOptions & options): rclcpp::Node("depthimage_to_laserscan", options){
-  auto qos = rclcpp:: SystemDefaultsQoS();
+  // auto qos = rclcpp:: SystemDefaultsQoS(); // Changed because depth camera publisher does not use RELIABLE (default) QoS but BestEffort
+  auto qos = rclcpp::QoS(rclcpp::QoSInitialization::from_rmw(rmw_qos_profile_default));
+qos.reliability(rclcpp::ReliabilityPolicy::BestEffort);
+
+
   cam_info_sub_ = this->create_subscription<sensor_msgs::msg::CameraInfo>("depth_camera_info", qos,
       std::bind(
         &DepthImageToLaserScanROS::infoCb, this,
@@ -96,3 +100,4 @@ void DepthImageToLaserScanROS::depthCb(const sensor_msgs::msg::Image::SharedPtr 
 }  // namespace depthimage_to_laserscan
 
 RCLCPP_COMPONENTS_REGISTER_NODE(depthimage_to_laserscan::DepthImageToLaserScanROS)
+
