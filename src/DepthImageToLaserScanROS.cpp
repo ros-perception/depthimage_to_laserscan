@@ -45,22 +45,31 @@
 namespace depthimage_to_laserscan
 {
 
+const int QOS_QUEUE_SIZE = 10;
+
 DepthImageToLaserScanROS::DepthImageToLaserScanROS(const rclcpp::NodeOptions & options)
 : rclcpp::Node("depthimage_to_laserscan", options)
-{
-  auto qos = rclcpp::SystemDefaultsQoS();
+{  
+  rclcpp::QoS qos(QOS_QUEUE_SIZE);
+
+  auto pub_opt = rclcpp::PublisherOptions();
+  pub_opt.qos_overriding_options = rclcpp::QosOverridingOptions::with_default_policies();
+
+  auto sub_opt = rclcpp::SubscriptionOptions();
+  pub_opt.qos_overriding_options = rclcpp::QosOverridingOptions::with_default_policies();
+
   cam_info_sub_ = this->create_subscription<sensor_msgs::msg::CameraInfo>(
     "depth_camera_info", qos,
     std::bind(
       &DepthImageToLaserScanROS::infoCb, this,
-      std::placeholders::_1));
+      std::placeholders::_1),sub_opt );
 
   depth_image_sub_ =
     this->create_subscription<sensor_msgs::msg::Image>(
     "depth", qos,
-    std::bind(&DepthImageToLaserScanROS::depthCb, this, std::placeholders::_1));
+    std::bind(&DepthImageToLaserScanROS::depthCb, this, std::placeholders::_1),sub_opt);
 
-  scan_pub_ = this->create_publisher<sensor_msgs::msg::LaserScan>("scan", qos);
+  scan_pub_ = this->create_publisher<sensor_msgs::msg::LaserScan>("scan", qos, pub_opt);
 
   float scan_time = this->declare_parameter("scan_time", 0.033);
 
