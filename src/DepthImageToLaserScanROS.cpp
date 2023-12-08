@@ -49,7 +49,7 @@ const int QOS_QUEUE_SIZE = 10;
 
 DepthImageToLaserScanROS::DepthImageToLaserScanROS(const rclcpp::NodeOptions & options)
 : rclcpp::Node("depthimage_to_laserscan", options)
-{  
+{
   rclcpp::QoS qos(QOS_QUEUE_SIZE);
 
   auto pub_opt = rclcpp::PublisherOptions();
@@ -62,12 +62,12 @@ DepthImageToLaserScanROS::DepthImageToLaserScanROS(const rclcpp::NodeOptions & o
     "depth_camera_info", qos,
     std::bind(
       &DepthImageToLaserScanROS::infoCb, this,
-      std::placeholders::_1),sub_opt );
+      std::placeholders::_1), sub_opt );
 
   depth_image_sub_ =
     this->create_subscription<sensor_msgs::msg::Image>(
     "depth", qos,
-    std::bind(&DepthImageToLaserScanROS::depthCb, this, std::placeholders::_1),sub_opt);
+    std::bind(&DepthImageToLaserScanROS::depthCb, this, std::placeholders::_1), sub_opt);
 
   scan_pub_ = this->create_publisher<sensor_msgs::msg::LaserScan>("scan", qos, pub_opt);
 

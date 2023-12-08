@@ -75,7 +75,6 @@ private:
 
   ///< Instance of the DepthImageToLaserScan conversion class.
   std::unique_ptr<depthimage_to_laserscan::DepthImageToLaserScan> dtl_;
-
 };
 }  // namespace depthimage_to_laserscan
 
