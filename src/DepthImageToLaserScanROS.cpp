@@ -62,7 +62,7 @@ DepthImageToLaserScanROS::DepthImageToLaserScanROS(const rclcpp::NodeOptions & o
     "depth_camera_info", qos,
     std::bind(
       &DepthImageToLaserScanROS::infoCb, this,
-      std::placeholders::_1), sub_opt );
+      std::placeholders::_1), sub_opt);
 
   depth_image_sub_ =
     this->create_subscription<sensor_msgs::msg::Image>(
