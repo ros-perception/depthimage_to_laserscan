@@ -169,36 +169,37 @@ private:
     int row_step = depth_msg->step / sizeof(T);
     int offset = static_cast<int>(cam_model.cy() - static_cast<double>(scan_height) / 2.0);
     
-    std::vector<std::vector<double>> column_depths(depth_msg->width);
+    std::vector<std::vector<double>> column_distances(depth_msg->width);
 
-    // Collect depths for each column
+    // Collect distances for each column
     for (int v = offset; v < offset + scan_height; v++) {
       const T * depth_row = reinterpret_cast<const T *>(&depth_msg->data[0]) + v * row_step;  // Offset to the correct row
       for (uint32_t u = 0; u < depth_msg->width; u++) {  // Loop over each pixel in row
         T depth = depth_row[u];
 
         if (depthimage_to_laserscan::DepthTraits<T>::valid(depth)) {  // Not NaN or Inf
+          double x = (u - center_x) * depth * constant_x;
           double z = depthimage_to_laserscan::DepthTraits<T>::toMeters(depth);
-          column_depths[u].push_back(z);
+          double r = std::sqrt(std::pow(x, 2.0) + std::pow(z, 2.0));
+          column_distances[u].push_back(r);
+
         }
       }
     }
 
     // Compute 0.1 quantile for each column and update scan ranges
     for (uint32_t u = 0; u < depth_msg->width; u++) {
-      if (!column_depths[u].empty()) {
-        std::sort(column_depths[u].begin(), column_depths[u].end());
-        size_t index = static_cast<size_t>(0.1 * column_depths[u].size());
-        double quantile_depth = column_depths[u][index];
+      if (!column_distances[u].empty()) {
+        std::sort(column_distances[u].begin(), column_distances[u].end());
+        size_t index = static_cast<size_t>(0.1 * column_distances[u].size());
+        double quantile_distance = column_distances[u][index];
 
-        double x = (u - center_x) * quantile_depth * constant_x;
-        double r = std::sqrt(std::pow(x, 2.0) + std::pow(quantile_depth, 2.0));
         double th = -std::atan2(static_cast<double>(u - center_x) * constant_x, unit_scaling);
         int scan_index = (th - scan_msg->angle_min) / scan_msg->angle_increment;
 
         // Update scan range
-        if (use_point(r, scan_msg->ranges[scan_index], scan_msg->range_min, scan_msg->range_max)) {
-          scan_msg->ranges[scan_index] = r;
+        if (use_point(quantile_distance, scan_msg->ranges[scan_index], scan_msg->range_min, scan_msg->range_max)) {
+          scan_msg->ranges[scan_index] = quantile_distance;
         }
       }
     }
