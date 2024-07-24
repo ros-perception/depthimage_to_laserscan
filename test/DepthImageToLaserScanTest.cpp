@@ -129,7 +129,7 @@ TEST(ConvertTest, setupLibrary)
 TEST(ConvertTest, testExceptions)
 {
   depthimage_to_laserscan::DepthImageToLaserScan dtl(g_scan_time, g_range_min,
-    g_range_max, g_scan_height, g_output_frame);
+    g_range_max, g_scan_height, g_quantile_value, g_output_frame);
 
   // Test supported image encodings for exceptions
   // Does not segfault as long as scan_height = 1
@@ -146,7 +146,7 @@ TEST(ConvertTest, testScanHeight)
 {
   for (int scan_height = 1; scan_height <= 100; scan_height++) {
     depthimage_to_laserscan::DepthImageToLaserScan dtl(g_scan_time, g_range_min,
-      g_range_max, scan_height, g_output_frame, g_quantile_value);
+      g_range_max, scan_height, g_quantile_value, g_output_frame);
     uint16_t low_value = 500;
     uint16_t high_value = 3000;
 

@@ -83,7 +83,7 @@ public:
    *
    */
   explicit DepthImageToLaserScan(
-    float scan_time, float range_min, float range_max, float quantile_value, int scan_height,
+    float scan_time, float range_min, float range_max, int scan_height, float quantile_value,
     const std::string & frame_id);
 
   ~DepthImageToLaserScan();
@@ -166,7 +166,7 @@ private:
     const image_geometry::PinholeCameraModel & cam_model,
     const sensor_msgs::msg::LaserScan::UniquePtr & scan_msg,
     const int & scan_height,
-    const float & quantile_value,
+    const float & quantile_value
     ) const
   {
     // Use correct principal point from calibration
