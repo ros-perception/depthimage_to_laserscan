@@ -147,9 +147,7 @@ TEST(ConvertTest, testScanHeight)
   for (int scan_height = 1; scan_height <= 100; scan_height++) {
     depthimage_to_laserscan::DepthImageToLaserScan dtl(g_scan_time, g_range_min,
       g_range_max, scan_height, g_quantile_value, g_output_frame);
-    uint16_t low_value = 500;
-    uint16_t high_value = 3000;
-
+    
     int data_len = depth_msg_->width;
     uint16_t * data = reinterpret_cast<uint16_t *>(&depth_msg_->data[0]);
     int row_step = depth_msg_->step / sizeof(uint16_t);
@@ -157,21 +155,20 @@ TEST(ConvertTest, testScanHeight)
     int offset = static_cast<int>(info_msg_->k[5] - static_cast<double>(scan_height) / 2.0);
     data += offset * row_step;  // Offset to center of image
 
+    // Fill the data with linearly increasing values
     for (int v = 0; v < scan_height; v++, data += row_step) {
       for (int u = 0; u < data_len; u++) {  // Loop over each pixel in row
-        if (v % scan_height < scan_height * g_quantile_value) {
-          data[u] = low_value;
-        } else {
-          data[u] = high_value;
-        }
+        data[u] = static_cast<uint16_t>((u + 1) * 100);
       }
     }
 
     // Convert
     sensor_msgs::msg::LaserScan::SharedPtr scan_msg = dtl.convert_msg(depth_msg_, info_msg_);
 
+    // Calculate expected 0.1 quantile value
+    float expected_quantile_value = static_cast<float>(data_len * 0.1 * 100) / 1000.0f;
+
     // Test for 0.1 quantile
-    float expected_quantile_value = static_cast<float>(low_value) / 1000.0f; // convert to meters
     for (size_t i = 0; i < scan_msg->ranges.size(); i++) {
       // If this is a valid point
       if (scan_msg->range_min <= scan_msg->ranges[i] &&

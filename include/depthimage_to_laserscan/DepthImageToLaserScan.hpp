@@ -166,8 +166,7 @@ private:
     const image_geometry::PinholeCameraModel & cam_model,
     const sensor_msgs::msg::LaserScan::UniquePtr & scan_msg,
     const int & scan_height,
-    const float & quantile_value
-    ) const
+    const float & quantile_value) const
   {
     // Use correct principal point from calibration
     float center_x = cam_model.cx();
@@ -183,16 +182,22 @@ private:
 
     // Collect distances for each column
     for (int v = offset; v < offset + scan_height; v++) {
-      const T * depth_row = reinterpret_cast<const T *>(&depth_msg->data[0]) + v * row_step;  // Offset to the correct row
+      const T * depth_row = reinterpret_cast<const T *>(&depth_msg->data[0]) + v * row_step;
       for (uint32_t u = 0; u < depth_msg->width; u++) {  // Loop over each pixel in row
         T depth = depth_row[u];
 
+        double r = depth;  // Assign to pass through NaNs and Infs
         if (depthimage_to_laserscan::DepthTraits<T>::valid(depth)) {  // Not NaN or Inf
           double x = (u - center_x) * depth * constant_x;
           double z = depthimage_to_laserscan::DepthTraits<T>::toMeters(depth);
-          double r = std::sqrt(std::pow(x, 2.0) + std::pow(z, 2.0));
-          column_distances[u].push_back(r);
+          r = std::sqrt(std::pow(x, 2.0) + std::pow(z, 2.0));
+        }
 
+        double th = -std::atan2(static_cast<double>(u - center_x) * constant_x, unit_scaling);
+        int index = (th - scan_msg->angle_min) / scan_msg->angle_increment;
+
+        if (use_point(r, scan_msg->ranges[index], scan_msg->range_min, scan_msg->range_max)) {
+          column_distances[u].push_back(r);
         }
       }
     }
@@ -208,12 +213,16 @@ private:
         int scan_index = (th - scan_msg->angle_min) / scan_msg->angle_increment;
 
         // Update scan range
-        if (use_point(quantile_distance, scan_msg->ranges[scan_index], scan_msg->range_min, scan_msg->range_max)) {
+        if (use_point(
+            quantile_distance, scan_msg->ranges[scan_index], scan_msg->range_min,
+            scan_msg->range_max))
+        {
           scan_msg->ranges[scan_index] = quantile_distance;
         }
       }
     }
   }
+
 
   ///< image_geometry helper class for managing sensor_msgs/CameraInfo messages.
   image_geometry::PinholeCameraModel cam_model_;
@@ -222,7 +231,7 @@ private:
   float range_min_;  ///< Stores the current minimum range to use.
   float range_max_;  ///< Stores the current maximum range to use.
   int scan_height_;  ///< Number of pixel rows to use when producing a laserscan from an area.
-  float quantile_value_;  ///< The quantile value to use for calculating the distance for each column.
+  float quantile_value_;  ///< Quantile value to use for calculating the distance for each column.
   ///< Output frame_id for each laserscan.  This is likely NOT the camera's frame_id.
   std::string output_frame_id_;
 };
