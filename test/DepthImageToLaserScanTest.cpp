@@ -45,6 +45,7 @@ const float g_scan_time = 1.0 / 30.0;
 const float g_range_min = 0.45;
 const float g_range_max = 10.0;
 const int g_scan_height = 1;
+const float g_quantile_value = 0.1;
 const char g_output_frame[] = "camera_depth_frame";
 
 // Inputs
@@ -55,7 +56,7 @@ sensor_msgs::msg::CameraInfo::SharedPtr info_msg_;
 TEST(ConvertTest, setupLibrary)
 {
   depthimage_to_laserscan::DepthImageToLaserScan dtl(g_scan_time, g_range_min,
-    g_range_max, g_scan_height, g_output_frame);
+    g_range_max, g_scan_height, g_quantile_value, g_output_frame);
 
   depth_msg_.reset(new sensor_msgs::msg::Image);
   depth_msg_->header.stamp.sec = 0;
@@ -140,12 +141,12 @@ TEST(ConvertTest, testExceptions)
   EXPECT_NO_THROW(dtl.convert_msg(depth_msg_, info_msg_));
 }
 
-// Check to make sure the mininum is output for each pixel column for various scan heights
+// Check to make sure the 0.1 quantile is output for each pixel column for various scan heights
 TEST(ConvertTest, testScanHeight)
 {
   for (int scan_height = 1; scan_height <= 100; scan_height++) {
     depthimage_to_laserscan::DepthImageToLaserScan dtl(g_scan_time, g_range_min,
-      g_range_max, scan_height, g_output_frame);
+      g_range_max, scan_height, g_output_frame, g_quantile_value);
     uint16_t low_value = 500;
     uint16_t high_value = 3000;
 
@@ -158,7 +159,7 @@ TEST(ConvertTest, testScanHeight)
 
     for (int v = 0; v < scan_height; v++, data += row_step) {
       for (int u = 0; u < data_len; u++) {  // Loop over each pixel in row
-        if (v % scan_height == u % scan_height) {
+        if (v % scan_height < scan_height * g_quantile_value) {
           data[u] = low_value;
         } else {
           data[u] = high_value;
@@ -169,16 +170,15 @@ TEST(ConvertTest, testScanHeight)
     // Convert
     sensor_msgs::msg::LaserScan::SharedPtr scan_msg = dtl.convert_msg(depth_msg_, info_msg_);
 
-    // Test for minimum
-    // 0.9f represents 10 percent margin on range
-    float high_float_thresh = static_cast<float>(high_value) * 1.0f / 1000.0f * 0.9f;
+    // Test for 0.1 quantile
+    float expected_quantile_value = static_cast<float>(low_value) / 1000.0f; // convert to meters
     for (size_t i = 0; i < scan_msg->ranges.size(); i++) {
       // If this is a valid point
       if (scan_msg->range_min <= scan_msg->ranges[i] &&
         scan_msg->ranges[i] <= scan_msg->range_max)
       {
-        // Make sure it's not set to the high_value
-        ASSERT_LT(scan_msg->ranges[i], high_float_thresh);
+        // Make sure it's close to the expected quantile value
+        ASSERT_NEAR(scan_msg->ranges[i], expected_quantile_value, 0.1f * expected_quantile_value);
       }
     }
   }
@@ -197,7 +197,7 @@ TEST(ConvertTest, testRandom)
   }
 
   depthimage_to_laserscan::DepthImageToLaserScan dtl(g_scan_time, g_range_min,
-    g_range_max, g_scan_height, g_output_frame);
+    g_range_max, g_scan_height, g_quantile_value, g_output_frame);
 
   // Convert
   sensor_msgs::msg::LaserScan::SharedPtr scan_msg = dtl.convert_msg(depth_msg_, info_msg_);
@@ -226,7 +226,7 @@ TEST(ConvertTest, testNaN)
   }
 
   depthimage_to_laserscan::DepthImageToLaserScan dtl(g_scan_time, g_range_min,
-    g_range_max, g_scan_height, g_output_frame);
+    g_range_max, g_scan_height, g_quantile_value, g_output_frame);
 
   // Convert
   sensor_msgs::msg::LaserScan::SharedPtr scan_msg = dtl.convert_msg(float_msg, info_msg_);
@@ -254,7 +254,7 @@ TEST(ConvertTest, testPositiveInf)
   }
 
   depthimage_to_laserscan::DepthImageToLaserScan dtl(g_scan_time, g_range_min,
-    g_range_max, g_scan_height, g_output_frame);
+    g_range_max, g_scan_height, g_quantile_value, g_output_frame);
 
   // Convert
   sensor_msgs::msg::LaserScan::SharedPtr scan_msg = dtl.convert_msg(float_msg, info_msg_);
@@ -289,7 +289,7 @@ TEST(ConvertTest, testNegativeInf)
   }
 
   depthimage_to_laserscan::DepthImageToLaserScan dtl(g_scan_time, g_range_min,
-    g_range_max, g_scan_height, g_output_frame);
+    g_range_max, g_scan_height, g_quantile_value, g_output_frame);
 
   // Convert
   sensor_msgs::msg::LaserScan::SharedPtr scan_msg = dtl.convert_msg(float_msg, info_msg_);

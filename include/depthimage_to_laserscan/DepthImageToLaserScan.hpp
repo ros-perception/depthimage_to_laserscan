@@ -71,13 +71,19 @@ public:
    *                    radii for each angular increment.  The output scan will output the closest radius that is
    *                    still not smaller than range_min.  This can be used to vertically compress obstacles into
    *                    a single LaserScan.
+   * @param quantile_value The quantile value to use for calculating the distance for each column.
+   *                       This value determines which distance measurement to use from the multiple
+   *                       rows of depth data. For example, a quantile value of 0.1 will use the 10th
+   *                       percentile distance, providing a balance between ignoring outliers and
+   *                       maintaining accurate distance measurements. This helps in reducing noise
+   *                       and improving the stability of the laser scan data.
    * @param frame_id The output frame_id for the LaserScan.  This will probably NOT be the same frame_id as the
    *                 depth image.  Example: For OpenNI cameras, this should be set to 'camera_depth_frame' while
    *                 the camera uses 'camera_depth_optical_frame'.
    *
    */
   explicit DepthImageToLaserScan(
-    float scan_time, float range_min, float range_max, int scan_height,
+    float scan_time, float range_min, float range_max, float quantile_value, int scan_height,
     const std::string & frame_id);
 
   ~DepthImageToLaserScan();
@@ -151,13 +157,17 @@ private:
    * @param cam_model The image_geometry camera model for this image.
    * @param scan_msg The output LaserScan.
    * @param scan_height The number of vertical pixels to feed into each angular_measurement.
+   * @param quantile_value The quantile value to use for calculating the distance for each column.
    *
    */
   template<typename T>
   void convert(
     const sensor_msgs::msg::Image::ConstSharedPtr & depth_msg,
     const image_geometry::PinholeCameraModel & cam_model,
-    const sensor_msgs::msg::LaserScan::UniquePtr & scan_msg, const int & scan_height) const
+    const sensor_msgs::msg::LaserScan::UniquePtr & scan_msg,
+    const int & scan_height,
+    const float & quantile_value,
+    ) const
   {
     // Use correct principal point from calibration
     float center_x = cam_model.cx();
@@ -168,7 +178,7 @@ private:
 
     int row_step = depth_msg->step / sizeof(T);
     int offset = static_cast<int>(cam_model.cy() - static_cast<double>(scan_height) / 2.0);
-    
+
     std::vector<std::vector<double>> column_distances(depth_msg->width);
 
     // Collect distances for each column
@@ -187,11 +197,11 @@ private:
       }
     }
 
-    // Compute 0.1 quantile for each column and update scan ranges
+    // Compute quantile for each column and update scan ranges
     for (uint32_t u = 0; u < depth_msg->width; u++) {
       if (!column_distances[u].empty()) {
         std::sort(column_distances[u].begin(), column_distances[u].end());
-        size_t index = static_cast<size_t>(0.1 * column_distances[u].size());
+        size_t index = static_cast<size_t>(quantile_value * column_distances[u].size());
         double quantile_distance = column_distances[u][index];
 
         double th = -std::atan2(static_cast<double>(u - center_x) * constant_x, unit_scaling);
@@ -212,6 +222,7 @@ private:
   float range_min_;  ///< Stores the current minimum range to use.
   float range_max_;  ///< Stores the current maximum range to use.
   int scan_height_;  ///< Number of pixel rows to use when producing a laserscan from an area.
+  float quantile_value_;  ///< The quantile value to use for calculating the distance for each column.
   ///< Output frame_id for each laserscan.  This is likely NOT the camera's frame_id.
   std::string output_frame_id_;
 };

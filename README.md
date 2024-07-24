@@ -18,4 +18,5 @@ Parameters
 * `range_min` (float) - The minimum distance in meters a projected point should be.  Points closer than this are discarded.  Defaults to 0.45 meters.
 * `range_max` (float) - The maximum distance in meters a projected point should be.  Points further than this are discarded.  Defaults to 10.0 meters.
 * `scan_height` (int) - The row from the depth image to use for the laser projection.  Defaults to 1.
+* `quantile_value` (float) - The quantile value to use when computing the distance for each column. Defaults to 0.0 (use minimum value in each column).
 * `output_frame` (string) - The frame id to publish in the LaserScan message.  Defaults to "camera_depth_frame".
