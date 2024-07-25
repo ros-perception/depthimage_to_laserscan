@@ -35,6 +35,7 @@
 #include <cmath>
 #include <limits>
 #include <random>
+#include <fstream>
 
 // Bring in my package's API, which is what I'm testing
 #include <depthimage_to_laserscan/DepthImageToLaserScan.hpp>
@@ -144,10 +145,12 @@ TEST(ConvertTest, testExceptions)
 // Check to make sure the 0.1 quantile is output for each pixel column for various scan heights
 TEST(ConvertTest, testScanHeight)
 {
+  std::ofstream log_file("test_scan_height_log.txt");
+
   for (int scan_height = 1; scan_height <= 100; scan_height++) {
     depthimage_to_laserscan::DepthImageToLaserScan dtl(g_scan_time, g_range_min,
       g_range_max, scan_height, g_quantile_value, g_output_frame);
-    
+
     int data_len = depth_msg_->width;
     uint16_t * data = reinterpret_cast<uint16_t *>(&depth_msg_->data[0]);
     int row_step = depth_msg_->step / sizeof(uint16_t);
@@ -158,15 +161,20 @@ TEST(ConvertTest, testScanHeight)
     // Fill the data with linearly increasing values
     for (int v = 0; v < scan_height; v++, data += row_step) {
       for (int u = 0; u < data_len; u++) {  // Loop over each pixel in row
-        data[u] = static_cast<uint16_t>((u + 1) * 100);
+        data[u] = static_cast<uint16_t>((v * data_len) + u + g_range_min);  
       }
     }
 
     // Convert
     sensor_msgs::msg::LaserScan::SharedPtr scan_msg = dtl.convert_msg(depth_msg_, info_msg_);
 
-    // Calculate expected 0.1 quantile value
-    float expected_quantile_value = static_cast<float>(data_len * 0.1 * 100) / 1000.0f;
+    // Calculate expected 0.1 quantile value for each column using the knowledge of how we filled
+    // our data with linearly increasing values
+    std::vector<float> expected_quantile_values(data_len);
+    size_t quantile_index = static_cast<size_t>(g_quantile_value * scan_height);
+    for (int u = 0; u < data_len; u++) {
+      expected_quantile_values[u] = (quantile_index * data_len) + u + g_range_min / 1000.0f; // Convert to meters
+    }
 
     // Test for 0.1 quantile
     for (size_t i = 0; i < scan_msg->ranges.size(); i++) {
@@ -174,12 +182,26 @@ TEST(ConvertTest, testScanHeight)
       if (scan_msg->range_min <= scan_msg->ranges[i] &&
         scan_msg->ranges[i] <= scan_msg->range_max)
       {
+        // Print all values for debugging
+        log_file << "Column: " << i << std::endl;
+        log_file << "Data values: ";
+        for (int v = 0; v < scan_height; v++) {
+          log_file << static_cast<uint16_t>((v * data_len + i + 1) * 10) << " ";
+        }
+        log_file << std::endl;
+        log_file << "Expected quantile value: " << expected_quantile_values[i] << std::endl;
+        log_file << "Actual scan range: " << scan_msg->ranges[i] << std::endl;
+        log_file << std::endl;
+
         // Make sure it's close to the expected quantile value
-        ASSERT_NEAR(scan_msg->ranges[i], expected_quantile_value, 0.1f * expected_quantile_value);
+        ASSERT_NEAR(scan_msg->ranges[i], expected_quantile_values[i], 0.1f * expected_quantile_values[i]);
       }
     }
   }
+
+  log_file.close();
 }
+
 
 // Test a randomly filled image and ensure all values are < range_min
 // (range_max is currently violated to fill the messages)
