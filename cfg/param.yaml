@@ -4,4 +4,5 @@ depthimage_to_laserscan:
     range_min: 0.45
     range_max: 10.0
     scan_height: 1
+    scan_offset: 0.5
     output_frame: "camera_depth_frame"
