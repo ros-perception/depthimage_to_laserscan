@@ -142,14 +142,14 @@ TEST(ConvertTest, testExceptions)
   EXPECT_NO_THROW(dtl.convert_msg(depth_msg_, info_msg_));
 }
 
-// Check to make sure the 0.1 quantile is output for each pixel column for various scan heights
+// Check to make sure the mininum is output for each pixel column for various scan heights
 TEST(ConvertTest, testScanHeight)
 {
-  std::ofstream log_file("test_scan_height_log.txt");
-
   for (int scan_height = 1; scan_height <= 100; scan_height++) {
     depthimage_to_laserscan::DepthImageToLaserScan dtl(g_scan_time, g_range_min,
       g_range_max, scan_height, g_quantile_value, g_output_frame);
+    uint16_t low_value = 500;
+    uint16_t high_value = 3000;
 
     int data_len = depth_msg_->width;
     uint16_t * data = reinterpret_cast<uint16_t *>(&depth_msg_->data[0]);
@@ -158,49 +158,56 @@ TEST(ConvertTest, testScanHeight)
     int offset = static_cast<int>(info_msg_->k[5] - static_cast<double>(scan_height) / 2.0);
     data += offset * row_step;  // Offset to center of image
 
-    // Fill the data with linearly increasing values
     for (int v = 0; v < scan_height; v++, data += row_step) {
       for (int u = 0; u < data_len; u++) {  // Loop over each pixel in row
-        data[u] = static_cast<uint16_t>((v * data_len) + u + g_range_min);  
+        if (v % scan_height == u % scan_height) {
+          data[u] = low_value;
+        } else {
+          data[u] = high_value;
+        }
       }
     }
 
     // Convert
     sensor_msgs::msg::LaserScan::SharedPtr scan_msg = dtl.convert_msg(depth_msg_, info_msg_);
 
-    // Calculate expected 0.1 quantile value for each column using the knowledge of how we filled
-    // our data with linearly increasing values
-    std::vector<float> expected_quantile_values(data_len);
+    // Calculate quantile values for each column in the depth image
+    std::vector<float> column_quantiles(data_len);
     size_t quantile_index = static_cast<size_t>(g_quantile_value * scan_height);
     for (int u = 0; u < data_len; u++) {
-      expected_quantile_values[u] = (quantile_index * data_len) + u + g_range_min / 1000.0f; // Convert to meters
+      std::vector<uint16_t> column_values;
+      for (int v = 0; v < scan_height; v++) {
+        uint16_t * data_row = reinterpret_cast<uint16_t *>(&depth_msg_->data[0]) + (offset + v) * row_step;
+        column_values.push_back(data_row[u]);
+      }
+      std::sort(column_values.begin(), column_values.end());
+      column_quantiles[u] = column_values[quantile_index];
     }
 
-    // Test for 0.1 quantile
+    // Test for quantile
+    float center_x = info_msg_->k[2];
+    float constant_x = 1.0f / info_msg_->k[0];
     for (size_t i = 0; i < scan_msg->ranges.size(); i++) {
       // If this is a valid point
       if (scan_msg->range_min <= scan_msg->ranges[i] &&
         scan_msg->ranges[i] <= scan_msg->range_max)
       {
-        // Print all values for debugging
-        log_file << "Column: " << i << std::endl;
-        log_file << "Data values: ";
-        for (int v = 0; v < scan_height; v++) {
-          log_file << static_cast<uint16_t>((v * data_len + i + 1) * 10) << " ";
-        }
-        log_file << std::endl;
-        log_file << "Expected quantile value: " << expected_quantile_values[i] << std::endl;
-        log_file << "Actual scan range: " << scan_msg->ranges[i] << std::endl;
-        log_file << std::endl;
+        // Calculate back the equivalent depth value
+        float r = scan_msg->ranges[i];
+        float th = scan_msg->angle_min + i * scan_msg->angle_increment;
+        float x = std::tan(th);
+        float equivalent_depth = r / std::sqrt(1 + (x / constant_x) * (x / constant_x));
 
-        // Make sure it's close to the expected quantile value
-        ASSERT_NEAR(scan_msg->ranges[i], expected_quantile_values[i], 0.1f * expected_quantile_values[i]);
+        // Determine the column index in the depth image
+        int u = static_cast<int>((th / scan_msg->angle_increment) + center_x);
+
+        // Make sure it's less than the quantile value for this column
+        ASSERT_NEAR(equivalent_depth, column_quantiles[u], 0.1f * (equivalent_depth + column_quantiles[u]));
       }
     }
   }
-
-  log_file.close();
 }
+
 
 
 // Test a randomly filled image and ensure all values are < range_min
