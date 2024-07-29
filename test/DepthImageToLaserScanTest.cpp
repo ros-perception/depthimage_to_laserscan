@@ -35,7 +35,16 @@
 #include <cmath>
 #include <limits>
 #include <random>
-#include <fstream>
+
+#include "depthimage_to_laserscan/depth_traits.hpp"
+#if __has_include("image_geometry/pinhole_camera_model.hpp")
+#include "image_geometry/pinhole_camera_model.hpp"
+#else
+// This header was deprecated as of https://github.com/ros-perception/vision_opencv/pull/448
+// (for Iron), and will be completely removed for J-Turtle.  However, we still need it in
+// Humble, since the .hpp doesn't exist there.
+#include "image_geometry/pinhole_camera_model.h"
+#endif
 
 // Bring in my package's API, which is what I'm testing
 #include <depthimage_to_laserscan/DepthImageToLaserScan.hpp>
@@ -171,22 +180,31 @@ TEST(ConvertTest, testScanHeight)
     // Convert
     sensor_msgs::msg::LaserScan::SharedPtr scan_msg = dtl.convert_msg(depth_msg_, info_msg_);
 
+    image_geometry::PinholeCameraModel cam_model;
+    cam_model.fromCameraInfo(info_msg_);
+    // Use correct principal point from calibration
+    float center_x = cam_model.cx();
+    float unit_scaling = 0.001f;
+    float constant_x = unit_scaling / cam_model.fx();
+
     // Calculate quantile values for each column in the depth image
     std::vector<float> column_quantiles(data_len);
     size_t quantile_index = static_cast<size_t>(g_quantile_value * scan_height);
     for (int u = 0; u < data_len; u++) {
       std::vector<uint16_t> column_values;
       for (int v = 0; v < scan_height; v++) {
-        uint16_t * data_row = reinterpret_cast<uint16_t *>(&depth_msg_->data[0]) + (offset + v) * row_step;
+        uint16_t * data_row = reinterpret_cast<uint16_t *>(&depth_msg_->data[0]) + (offset + v) *
+          row_step;
         column_values.push_back(data_row[u]);
       }
       std::sort(column_values.begin(), column_values.end());
-      column_quantiles[u] = column_values[quantile_index];
+      column_quantiles[u] = column_values[quantile_index] / 1000.0f;  // Convert to meters
     }
 
     // Test for quantile
-    float center_x = info_msg_->k[2];
-    float constant_x = 1.0f / info_msg_->k[0];
+    // float center_x = info_msg_->k[2];
+    // float focal_length_x = info_msg_->k[0];  // fx from camera intrinsic matrix
+
     for (size_t i = 0; i < scan_msg->ranges.size(); i++) {
       // If this is a valid point
       if (scan_msg->range_min <= scan_msg->ranges[i] &&
@@ -195,20 +213,19 @@ TEST(ConvertTest, testScanHeight)
         // Calculate back the equivalent depth value
         float r = scan_msg->ranges[i];
         float th = scan_msg->angle_min + i * scan_msg->angle_increment;
-        float x = std::tan(th);
-        float equivalent_depth = r / std::sqrt(1 + (x / constant_x) * (x / constant_x));
+        float equivalent_depth = r * std::cos(th);
+        // Determine the column index in the depth image for the current scan angle
+        int u = static_cast<int>((center_x - std::sin(th)) / constant_x);
 
-        // Determine the column index in the depth image
-        int u = static_cast<int>((th / scan_msg->angle_increment) + center_x);
-
-        // Make sure it's less than the quantile value for this column
-        ASSERT_NEAR(equivalent_depth, column_quantiles[u], 0.1f * (equivalent_depth + column_quantiles[u]));
+        // Now we can compare the quantile of the column in the depthimage with the
+        // equivalent depth calculated back from the result of convert_msg
+        ASSERT_NEAR(
+          equivalent_depth, column_quantiles[u],
+          0.1f * (column_quantiles[u]) + 0.000001f);
       }
     }
   }
 }
-
-
 
 // Test a randomly filled image and ensure all values are < range_min
 // (range_max is currently violated to fill the messages)
