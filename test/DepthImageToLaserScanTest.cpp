@@ -36,6 +36,16 @@
 #include <limits>
 #include <random>
 
+#include "depthimage_to_laserscan/depth_traits.hpp"
+#if __has_include("image_geometry/pinhole_camera_model.hpp")
+#include "image_geometry/pinhole_camera_model.hpp"
+#else
+// This header was deprecated as of https://github.com/ros-perception/vision_opencv/pull/448
+// (for Iron), and will be completely removed for J-Turtle.  However, we still need it in
+// Humble, since the .hpp doesn't exist there.
+#include "image_geometry/pinhole_camera_model.h"
+#endif
+
 // Bring in my package's API, which is what I'm testing
 #include <depthimage_to_laserscan/DepthImageToLaserScan.hpp>
 
@@ -45,6 +55,7 @@ const float g_scan_time = 1.0 / 30.0;
 const float g_range_min = 0.45;
 const float g_range_max = 10.0;
 const int g_scan_height = 1;
+const float g_quantile_value = 0.5;
 const char g_output_frame[] = "camera_depth_frame";
 
 // Inputs
@@ -55,7 +66,7 @@ sensor_msgs::msg::CameraInfo::SharedPtr info_msg_;
 TEST(ConvertTest, setupLibrary)
 {
   depthimage_to_laserscan::DepthImageToLaserScan dtl(g_scan_time, g_range_min,
-    g_range_max, g_scan_height, g_output_frame);
+    g_range_max, g_scan_height, g_quantile_value, g_output_frame);
 
   depth_msg_.reset(new sensor_msgs::msg::Image);
   depth_msg_->header.stamp.sec = 0;
@@ -128,7 +139,7 @@ TEST(ConvertTest, setupLibrary)
 TEST(ConvertTest, testExceptions)
 {
   depthimage_to_laserscan::DepthImageToLaserScan dtl(g_scan_time, g_range_min,
-    g_range_max, g_scan_height, g_output_frame);
+    g_range_max, g_scan_height, g_quantile_value, g_output_frame);
 
   // Test supported image encodings for exceptions
   // Does not segfault as long as scan_height = 1
@@ -145,7 +156,7 @@ TEST(ConvertTest, testScanHeight)
 {
   for (int scan_height = 1; scan_height <= 100; scan_height++) {
     depthimage_to_laserscan::DepthImageToLaserScan dtl(g_scan_time, g_range_min,
-      g_range_max, scan_height, g_output_frame);
+      g_range_max, scan_height, g_quantile_value, g_output_frame);
     uint16_t low_value = 500;
     uint16_t high_value = 3000;
 
@@ -169,16 +180,41 @@ TEST(ConvertTest, testScanHeight)
     // Convert
     sensor_msgs::msg::LaserScan::SharedPtr scan_msg = dtl.convert_msg(depth_msg_, info_msg_);
 
-    // Test for minimum
-    // 0.9f represents 10 percent margin on range
-    float high_float_thresh = static_cast<float>(high_value) * 1.0f / 1000.0f * 0.9f;
-    for (size_t i = 0; i < scan_msg->ranges.size(); i++) {
-      // If this is a valid point
-      if (scan_msg->range_min <= scan_msg->ranges[i] &&
-        scan_msg->ranges[i] <= scan_msg->range_max)
-      {
-        // Make sure it's not set to the high_value
-        ASSERT_LT(scan_msg->ranges[i], high_float_thresh);
+    image_geometry::PinholeCameraModel cam_model;
+    cam_model.fromCameraInfo(info_msg_);
+    // Use correct principal point from calibration
+    float center_x = cam_model.cx();
+    float unit_scaling = 0.001f;
+    float constant_x = unit_scaling / cam_model.fx();
+
+    // Calculate quantile values for each column in the depth image
+    size_t quantile_index = static_cast<size_t>(g_quantile_value * scan_height);
+
+    // Collect distances for each column
+
+    for (int u = 0; u < data_len; u++) {  // Loop over each pixel in row
+      std::vector<uint16_t> column_values;
+      for (int v = 0; v < scan_height; v++) {
+        uint16_t * data_row = reinterpret_cast<uint16_t *>(&depth_msg_->data[0]) + (offset + v) *
+          row_step;
+        column_values.push_back(data_row[u]);
+      }
+      std::sort(column_values.begin(), column_values.end());
+      double depth_data_column_quantile = column_values[quantile_index];
+
+      double x = (u - center_x) * depth_data_column_quantile * constant_x;
+      double z = depth_data_column_quantile * 0.001f;
+      double r = std::sqrt(std::pow(x, 2.0) + std::pow(z, 2.0));
+
+      double th = std::atan2(static_cast<double>(u - center_x) * constant_x, unit_scaling);
+      uint16_t index = (th - scan_msg->angle_min) / scan_msg->angle_increment;
+
+      // Now we can compare the quantile of the column in the depthimage with the
+      // equivalent depth calculated back from the result of convert_msg
+      if (index < depth_msg_->width && std::isfinite(scan_msg->ranges[index])) {
+        ASSERT_NEAR(
+          r, scan_msg->ranges[index],
+          0.01f * (scan_msg->ranges[index]));
       }
     }
   }
@@ -197,7 +233,7 @@ TEST(ConvertTest, testRandom)
   }
 
   depthimage_to_laserscan::DepthImageToLaserScan dtl(g_scan_time, g_range_min,
-    g_range_max, g_scan_height, g_output_frame);
+    g_range_max, g_scan_height, g_quantile_value, g_output_frame);
 
   // Convert
   sensor_msgs::msg::LaserScan::SharedPtr scan_msg = dtl.convert_msg(depth_msg_, info_msg_);
@@ -226,7 +262,7 @@ TEST(ConvertTest, testNaN)
   }
 
   depthimage_to_laserscan::DepthImageToLaserScan dtl(g_scan_time, g_range_min,
-    g_range_max, g_scan_height, g_output_frame);
+    g_range_max, g_scan_height, g_quantile_value, g_output_frame);
 
   // Convert
   sensor_msgs::msg::LaserScan::SharedPtr scan_msg = dtl.convert_msg(float_msg, info_msg_);
@@ -254,7 +290,7 @@ TEST(ConvertTest, testPositiveInf)
   }
 
   depthimage_to_laserscan::DepthImageToLaserScan dtl(g_scan_time, g_range_min,
-    g_range_max, g_scan_height, g_output_frame);
+    g_range_max, g_scan_height, g_quantile_value, g_output_frame);
 
   // Convert
   sensor_msgs::msg::LaserScan::SharedPtr scan_msg = dtl.convert_msg(float_msg, info_msg_);
@@ -289,7 +325,7 @@ TEST(ConvertTest, testNegativeInf)
   }
 
   depthimage_to_laserscan::DepthImageToLaserScan dtl(g_scan_time, g_range_min,
-    g_range_max, g_scan_height, g_output_frame);
+    g_range_max, g_scan_height, g_quantile_value, g_output_frame);
 
   // Convert
   sensor_msgs::msg::LaserScan::SharedPtr scan_msg = dtl.convert_msg(float_msg, info_msg_);

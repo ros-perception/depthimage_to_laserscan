@@ -49,9 +49,9 @@ namespace depthimage_to_laserscan
 
 DepthImageToLaserScan::DepthImageToLaserScan(
   float scan_time, float range_min, float range_max,
-  int scan_height, const std::string & frame_id)
+  int scan_height, float quantile_value, const std::string & frame_id)
 : scan_time_(scan_time), range_min_(range_min), range_max_(range_max), scan_height_(scan_height),
-  output_frame_id_(frame_id)
+  quantile_value_(quantile_value), output_frame_id_(frame_id)
 {
 }
 
@@ -156,9 +156,9 @@ sensor_msgs::msg::LaserScan::UniquePtr DepthImageToLaserScan::convert_msg(
   scan_msg->ranges.assign(ranges_size, std::numeric_limits<float>::quiet_NaN());
 
   if (depth_msg->encoding == sensor_msgs::image_encodings::TYPE_16UC1) {
-    convert<uint16_t>(depth_msg, cam_model_, scan_msg, scan_height_);
+    convert<uint16_t>(depth_msg, cam_model_, scan_msg, scan_height_, quantile_value_);
   } else if (depth_msg->encoding == sensor_msgs::image_encodings::TYPE_32FC1) {
-    convert<float>(depth_msg, cam_model_, scan_msg, scan_height_);
+    convert<float>(depth_msg, cam_model_, scan_msg, scan_height_, quantile_value_);
   } else {
     std::stringstream ss;
     ss << "Depth image has unsupported encoding: " << depth_msg->encoding;
