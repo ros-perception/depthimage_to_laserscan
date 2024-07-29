@@ -35,7 +35,6 @@
 #include <cmath>
 #include <limits>
 #include <random>
-#include <fstream>
 
 #include "depthimage_to_laserscan/depth_traits.hpp"
 #if __has_include("image_geometry/pinhole_camera_model.hpp")
@@ -155,11 +154,7 @@ TEST(ConvertTest, testExceptions)
 // Check to make sure the mininum is output for each pixel column for various scan heights
 TEST(ConvertTest, testScanHeight)
 {
-  std::ofstream log_file("test_scan_height_log.txt");
-
   for (int scan_height = 1; scan_height <= 100; scan_height++) {
-    log_file << "############# scan_height: " << scan_height << std::endl;
-    
     depthimage_to_laserscan::DepthImageToLaserScan dtl(g_scan_time, g_range_min,
       g_range_max, scan_height, g_quantile_value, g_output_frame);
     uint16_t low_value = 500;
@@ -193,19 +188,7 @@ TEST(ConvertTest, testScanHeight)
     float constant_x = unit_scaling / cam_model.fx();
 
     // Calculate quantile values for each column in the depth image
-    std::vector<float> column_quantiles(data_len);
     size_t quantile_index = static_cast<size_t>(g_quantile_value * scan_height);
-    // for (int u = 0; u < data_len; u++) {
-    //   std::vector<uint16_t> column_values;
-    //   for (int v = 0; v < scan_height; v++) {
-    //     uint16_t * data_row = reinterpret_cast<uint16_t *>(&depth_msg_->data[0]) + (offset + v) *
-    //       row_step;
-    //     column_values.push_back(data_row[u]);
-    //   }
-    //   std::sort(column_values.begin(), column_values.end());
-    //   column_quantiles[u] = column_values[quantile_index] / 1000.0f;  // Convert to meters
-    // }
-
 
     // Collect distances for each column
 
@@ -226,22 +209,6 @@ TEST(ConvertTest, testScanHeight)
       double th = std::atan2(static_cast<double>(u - center_x) * constant_x, unit_scaling);
       uint16_t index = (th - scan_msg->angle_min) / scan_msg->angle_increment;
 
-      // Print debugging information
-      // log_file << "scan_range_i: " << i << std::endl;
-      log_file << "u: " << u << std::endl;
-      log_file << "index: " << index << std::endl;
-      log_file << "th: " << th << std::endl;
-      log_file << "x: " << x << std::endl;
-      log_file << "z: " << z << std::endl;
-      log_file << "r: " << r << std::endl;
-      // log_file << "equivalent_depth: " << equivalent_depth << std::endl;
-      log_file << "depth_data_column_quantile: " << depth_data_column_quantile << std::endl;
-      log_file << "determined_column_u: " << u << std::endl;
-      // log_file << "Equivalent depth: " << equivalent_depth << std::endl;
-      log_file << "Quantile depth: " << column_quantiles[u] << std::endl;
-      log_file << "Scan range: " << scan_msg->ranges[index] << std::endl;
-      log_file << std::endl;
-
       // Now we can compare the quantile of the column in the depthimage with the
       // equivalent depth calculated back from the result of convert_msg
       if (index < depth_msg_->width && std::isfinite(scan_msg->ranges[index])) {
@@ -250,10 +217,7 @@ TEST(ConvertTest, testScanHeight)
           0.01f * (scan_msg->ranges[index]));
       }
     }
-    
-
   }
-  log_file.close();
 }
 
 // Test a randomly filled image and ensure all values are < range_min
