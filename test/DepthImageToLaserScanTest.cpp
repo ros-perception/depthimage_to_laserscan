@@ -35,6 +35,7 @@
 #include <cmath>
 #include <limits>
 #include <random>
+#include <fstream>
 
 #include "depthimage_to_laserscan/depth_traits.hpp"
 #if __has_include("image_geometry/pinhole_camera_model.hpp")
@@ -154,6 +155,8 @@ TEST(ConvertTest, testExceptions)
 // Check to make sure the mininum is output for each pixel column for various scan heights
 TEST(ConvertTest, testScanHeight)
 {
+  std::ofstream log_file("test_scan_height_log.txt");
+
   for (int scan_height = 1; scan_height <= 100; scan_height++) {
     depthimage_to_laserscan::DepthImageToLaserScan dtl(g_scan_time, g_range_min,
       g_range_max, scan_height, g_quantile_value, g_output_frame);
@@ -214,8 +217,35 @@ TEST(ConvertTest, testScanHeight)
         float r = scan_msg->ranges[i];
         float th = scan_msg->angle_min + i * scan_msg->angle_increment;
         float equivalent_depth = r * std::cos(th);
-        // Determine the column index in the depth image for the current scan angle
-        int u = static_cast<int>((center_x - std::sin(th)) / constant_x);
+
+        float fx = cam_model.fx();
+
+        // Compute x and z from r and th
+        double z = r * std::cos(th);
+        double x = r * std::sin(th);
+
+        // Convert x back to pixel coordinate u
+        // x = (u - center_x) * depth * constant_x
+        // => u = x / (depth * constant_x) + center_x
+        // Since z is depth in meters and constant_x = unit_scaling / fx
+        // u = x / (z * unit_scaling / fx) + center_x
+        // u = (x * fx / (z * unit_scaling)) + center_x
+        int u = static_cast<int>((x * fx / (z * 1.0)) + center_x) + 10;
+
+        // Print all values for debugging
+        log_file << std::endl;
+        log_file << "range_i: " << i << std::endl;
+        log_file << "r: " << r << std::endl;
+        log_file << "th: " << th << std::endl;
+        log_file << "std::sin(th): " << std::sin(th) << std::endl;
+        log_file << "u: " << u << std::endl;
+        log_file << "center_x: " << center_x << std::endl;
+        log_file << "constant_x: " << constant_x << std::endl;
+        log_file << "depth_msg_->width: " << depth_msg_->width << std::endl;
+        log_file << "equivalent_depth: " << equivalent_depth << std::endl;
+        log_file << "column_quantiles[u]: " << column_quantiles[u] << std::endl;
+        log_file << "" << std::endl;
+
 
         // Now we can compare the quantile of the column in the depthimage with the
         // equivalent depth calculated back from the result of convert_msg
@@ -225,6 +255,7 @@ TEST(ConvertTest, testScanHeight)
       }
     }
   }
+  log_file.close();
 }
 
 // Test a randomly filled image and ensure all values are < range_min
