@@ -56,7 +56,7 @@ const float g_scan_time = 1.0 / 30.0;
 const float g_range_min = 0.45;
 const float g_range_max = 10.0;
 const int g_scan_height = 1;
-const float g_quantile_value = 0.1;
+const float g_quantile_value = 0.5;
 const char g_output_frame[] = "camera_depth_frame";
 
 // Inputs
@@ -158,6 +158,8 @@ TEST(ConvertTest, testScanHeight)
   std::ofstream log_file("test_scan_height_log.txt");
 
   for (int scan_height = 1; scan_height <= 100; scan_height++) {
+    log_file << "############# scan_height: " << scan_height << std::endl;
+    
     depthimage_to_laserscan::DepthImageToLaserScan dtl(g_scan_time, g_range_min,
       g_range_max, scan_height, g_quantile_value, g_output_frame);
     uint16_t low_value = 500;
@@ -193,7 +195,21 @@ TEST(ConvertTest, testScanHeight)
     // Calculate quantile values for each column in the depth image
     std::vector<float> column_quantiles(data_len);
     size_t quantile_index = static_cast<size_t>(g_quantile_value * scan_height);
-    for (int u = 0; u < data_len; u++) {
+    // for (int u = 0; u < data_len; u++) {
+    //   std::vector<uint16_t> column_values;
+    //   for (int v = 0; v < scan_height; v++) {
+    //     uint16_t * data_row = reinterpret_cast<uint16_t *>(&depth_msg_->data[0]) + (offset + v) *
+    //       row_step;
+    //     column_values.push_back(data_row[u]);
+    //   }
+    //   std::sort(column_values.begin(), column_values.end());
+    //   column_quantiles[u] = column_values[quantile_index] / 1000.0f;  // Convert to meters
+    // }
+
+
+    // Collect distances for each column
+
+    for (int u = 0; u < data_len; u++) {  // Loop over each pixel in row
       std::vector<uint16_t> column_values;
       for (int v = 0; v < scan_height; v++) {
         uint16_t * data_row = reinterpret_cast<uint16_t *>(&depth_msg_->data[0]) + (offset + v) *
@@ -201,59 +217,41 @@ TEST(ConvertTest, testScanHeight)
         column_values.push_back(data_row[u]);
       }
       std::sort(column_values.begin(), column_values.end());
-      column_quantiles[u] = column_values[quantile_index] / 1000.0f;  // Convert to meters
-    }
+      double depth_data_column_quantile = column_values[quantile_index];
 
-    // Test for quantile
-    // float center_x = info_msg_->k[2];
-    // float focal_length_x = info_msg_->k[0];  // fx from camera intrinsic matrix
+      double x = (u - center_x) * depth_data_column_quantile * constant_x;
+      double z = depth_data_column_quantile * 0.001f;
+      double r = std::sqrt(std::pow(x, 2.0) + std::pow(z, 2.0));
 
-    for (size_t i = 0; i < scan_msg->ranges.size(); i++) {
-      // If this is a valid point
-      if (scan_msg->range_min <= scan_msg->ranges[i] &&
-        scan_msg->ranges[i] <= scan_msg->range_max)
-      {
-        // Calculate back the equivalent depth value
-        float r = scan_msg->ranges[i];
-        float th = scan_msg->angle_min + i * scan_msg->angle_increment;
-        float equivalent_depth = r * std::cos(th);
+      double th = std::atan2(static_cast<double>(u - center_x) * constant_x, unit_scaling);
+      uint16_t index = (th - scan_msg->angle_min) / scan_msg->angle_increment;
 
-        float fx = cam_model.fx();
+      // Print debugging information
+      // log_file << "scan_range_i: " << i << std::endl;
+      log_file << "u: " << u << std::endl;
+      log_file << "index: " << index << std::endl;
+      log_file << "th: " << th << std::endl;
+      log_file << "x: " << x << std::endl;
+      log_file << "z: " << z << std::endl;
+      log_file << "r: " << r << std::endl;
+      // log_file << "equivalent_depth: " << equivalent_depth << std::endl;
+      log_file << "depth_data_column_quantile: " << depth_data_column_quantile << std::endl;
+      log_file << "determined_column_u: " << u << std::endl;
+      // log_file << "Equivalent depth: " << equivalent_depth << std::endl;
+      log_file << "Quantile depth: " << column_quantiles[u] << std::endl;
+      log_file << "Scan range: " << scan_msg->ranges[index] << std::endl;
+      log_file << std::endl;
 
-        // Compute x and z from r and th
-        double z = r * std::cos(th);
-        double x = r * std::sin(th);
-
-        // Convert x back to pixel coordinate u
-        // x = (u - center_x) * depth * constant_x
-        // => u = x / (depth * constant_x) + center_x
-        // Since z is depth in meters and constant_x = unit_scaling / fx
-        // u = x / (z * unit_scaling / fx) + center_x
-        // u = (x * fx / (z * unit_scaling)) + center_x
-        int u = static_cast<int>((x * fx / (z * 1.0)) + center_x) + 10;
-
-        // Print all values for debugging
-        log_file << std::endl;
-        log_file << "range_i: " << i << std::endl;
-        log_file << "r: " << r << std::endl;
-        log_file << "th: " << th << std::endl;
-        log_file << "std::sin(th): " << std::sin(th) << std::endl;
-        log_file << "u: " << u << std::endl;
-        log_file << "center_x: " << center_x << std::endl;
-        log_file << "constant_x: " << constant_x << std::endl;
-        log_file << "depth_msg_->width: " << depth_msg_->width << std::endl;
-        log_file << "equivalent_depth: " << equivalent_depth << std::endl;
-        log_file << "column_quantiles[u]: " << column_quantiles[u] << std::endl;
-        log_file << "" << std::endl;
-
-
-        // Now we can compare the quantile of the column in the depthimage with the
-        // equivalent depth calculated back from the result of convert_msg
+      // Now we can compare the quantile of the column in the depthimage with the
+      // equivalent depth calculated back from the result of convert_msg
+      if (index < depth_msg_->width && std::isfinite(scan_msg->ranges[index])) {
         ASSERT_NEAR(
-          equivalent_depth, column_quantiles[u],
-          0.1f * (column_quantiles[u]) + 0.000001f);
+          r, scan_msg->ranges[index],
+          0.01f * (scan_msg->ranges[index]));
       }
     }
+    
+
   }
   log_file.close();
 }
